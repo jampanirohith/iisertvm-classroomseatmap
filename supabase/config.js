@@ -1,7 +1,14 @@
-// Paste the Project URL and publishable key from Supabase → Project Settings → API Keys.
-// The publishable/anon key is intended for browser use with the RLS policies in schema.sql.
-// NEVER paste a service_role or secret key into this file.
-window.SUPABASE_CONFIG = {
-  url: 'https://aoydqxvohkaeorbltmbm.supabase.co',
-  publishableKey: 'sb_publishable_r7v2Z1c2_bUc6G5o0NrdFQ_aS8B9SAU'
-};
+// Public browser config is delivered by a Cloudflare Pages Function. Do not add secrets here.
+window.SUPABASE_CONFIG = { url: '', publishableKey: '', anonKey: '' };
+window.SUPABASE_CONFIG_ENDPOINT_AVAILABLE = false;
+window.SUPABASE_CONFIG_READY = fetch('/api/config', { cache: 'no-store', headers: { Accept: 'application/json' } })
+  .then(response => { if (!response.ok) throw new Error('Public Supabase config is not available.'); return response.json(); })
+  .then(config => {
+    window.SUPABASE_CONFIG_ENDPOINT_AVAILABLE = true;
+    window.SUPABASE_CONFIG = {
+      url: String(config.supabaseUrl || '').trim(),
+      publishableKey: String(config.supabasePublishableKey || '').trim(),
+      anonKey: String(config.supabasePublishableKey || '').trim()
+    };
+  })
+  .catch(() => { /* local development without Pages Functions remains local-only */ });

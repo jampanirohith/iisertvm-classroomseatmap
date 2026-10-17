@@ -9,7 +9,7 @@ const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
 const plain = v => JSON.parse(JSON.stringify(v));   // values from the vm sandbox have a different Array prototype
 
 // Every script parses.
-for (const f of ['js/data.js', 'js/store.js', 'js/room.js', 'js/home.js', 'js/map.js', 'js/theme.js', 'supabase/config.js']) new vm.Script(read(f), { filename: f });
+for (const f of ['js/data.js', 'js/store.js', 'js/room.js', 'js/home.js', 'js/map.js', 'js/theme.js', 'js/recurrence.js', 'supabase/config.js']) new vm.Script(read(f), { filename: f });
 
 // Classrooms.
 const sandbox = { window: {} };
@@ -103,7 +103,7 @@ for (const room of rooms) assert.ok(seed.includes(`('${room.id}', '${room.name}'
 for (const table of ['rooms', 'events', 'seat_marks']) assert.ok(schema.includes(`create table if not exists public.${table}`), `schema creates ${table}`);
 
 // Pages: every local link and script exists, and no leftover wording.
-const pages = ['index.html', 'room.html', 'interactive-map.html'];
+const pages = ['index.html', 'room.html', 'interactive-map.html', 'admin.html'];
 for (const page of pages) {
   const html = read(page);
   for (const m of html.matchAll(/(?:href|src)="([^"#]+)"/g)) {
@@ -115,32 +115,35 @@ for (const page of pages) {
 const mapHtml = read('interactive-map.html');
 for (const room of rooms) assert.ok(mapHtml.includes(`room.html?room=${room.id}`), `map links to ${room.id}`);
 const banned = /\b(provisional|demo|prototype|reconstruct\w*)\b/i;
-for (const f of [...pages, 'css/styles.css', 'js/data.js', 'js/store.js', 'js/room.js', 'js/home.js', 'js/map.js', 'js/theme.js', 'README.md', 'supabase/schema.sql', 'supabase/seed.sql']) {
+for (const f of [...pages, 'css/styles.css', 'js/data.js', 'js/store.js', 'js/room.js', 'js/home.js', 'js/map.js', 'js/theme.js', 'js/recurrence.js', 'README.md', 'supabase/schema.sql', 'supabase/seed.sql']) {
   assert.ok(!banned.test(read(f)), `${f}: no leftover working-draft wording`);
 }
+// Recurrence uses calendar-safe ISO dates and supports weekly / selected weekdays.
+const recurrenceContext = { window: {} };
+vm.runInNewContext(read('js/recurrence.js'), recurrenceContext);
+const recurrence = recurrenceContext.window.LHC_RECURRENCE;
+assert.deepEqual(Array.from(recurrence.dates('2026-10-19', '2026-11-09', [1])), ['2026-10-19', '2026-10-26', '2026-11-02', '2026-11-09']);
+assert.deepEqual(Array.from(recurrence.dates('2026-10-19', '2026-10-30', [1, 3, 5])), ['2026-10-19', '2026-10-21', '2026-10-23', '2026-10-26', '2026-10-28', '2026-10-30']);
+assert.equal(recurrence.weekday('2026-10-19'), 1);
+assert.throws(() => recurrence.dates('2026-10-20', '2026-10-19', [2]), /on or after/);
+assert.throws(() => recurrence.dates('2026-10-19', '2027-06-01', [1]), /180 days/);
+assert.throws(() => recurrence.dates('2026-10-19', '2026-10-21', []), /at least one weekday/);
 const roomPage = read('room.html');
 const roomScript = read('js/room.js');
-assert.ok(roomScript.includes('ev.start < prev.end && ev.end > prev.start'), 'event overlap validation');
+assert.ok(read('functions/api/admin/events.js').includes('event.start_time < previous.end_time && event.end_time > previous.start_time'), 'server-side event overlap validation');
 assert.ok(roomScript.includes("if (!ev || ev.type !== 'exam')"), 'seat marking is limited to exam events');
 assert.ok(roomScript.includes('Seat marking is available for exams only'), 'class events explain why seats cannot be marked');
 assert.ok(!roomScript.includes('Enter the professor for a class'), 'professor name is optional for classes');
-assert.ok(roomPage.includes('Professor (optional)'), 'professor field is labeled optional');
+assert.ok(read('admin.html').includes('Professor (optional)'), 'professor field is labeled optional in the admin form');
 assert.ok(roomPage.includes('Mark your seat') && roomPage.includes('Mark my seat'), 'exam seat UI uses marking language');
-assert.ok(roomPage.includes('Name (optional)') && roomPage.includes('Roll number (optional)'), 'name and roll number are independently optional');
-assert.ok(roomScript.includes('Enter your name, roll number, or both.'), 'at least one identity field must be entered');
-assert.ok(!roomPage.includes('event-repeat') && !roomScript.includes('Recurrence'), 'recurring-event controls are removed');
+assert.ok(!roomPage.includes('Book seat'), 'seat dialog does not use booking language');
 assert.ok(read('css/styles.css').includes('--bg: #080808'), 'dark mode uses neutral black');
-assert.ok(schema.includes('events_no_overlap_per_room'), 'database enforces event overlap prevention');
-assert.ok(schema.includes('private.event_owners') && schema.includes('private.seat_mark_owners'), 'private token hashes are kept out of public tables');
-assert.ok(schema.includes('mark_exam_seat') && schema.includes('validate_exam_seat_mark'), 'database functions enforce exam-only marks');
-assert.ok(schema.includes('seat_mark_owners_unique_roll_per_exam'), 'database enforces unique roll number per exam in the private schema');
-assert.ok(schema.includes('revoke all on table public.rooms, public.room_seats, public.events, public.seat_marks'), 'direct public writes are revoked');
-assert.ok(fs.existsSync(path.join(root, 'supabase/verify.sql')), 'database verification SQL exists');
-assert.ok(!fs.existsSync(path.join(root, 'js/recurrence.js')), 'obsolete recurrence helper removed');
-console.log('PASS: classrooms, layouts, database safeguards, pages, optional identity fields and no-recurring-events rule');
+for (const id of ['event-repeat', 'event-repeat-mode', 'event-repeat-until', 'repeat-days-wrap']) assert.ok(read('admin.html').includes(`id="${id}"`), `admin recurrence control ${id}`);
+for (const script of ['js/theme.js', 'js/recurrence.js']) assert.ok(fs.existsSync(path.join(root, script)), `${script} exists`);
+console.log('PASS: classrooms, layouts, database files, pages, theme wiring and recurrence dates');
 
 
-// Local-storage fallback: one-off events, overlap rejection, exam-only seat marks, and creator deletion.
+// Local event storage: recurring instances remain distinct events with independent seat marks.
 (async () => {
   const values = new Map();
   const localStorage = {
@@ -148,24 +151,42 @@ console.log('PASS: classrooms, layouts, database safeguards, pages, optional ide
     setItem(key, value) { values.set(key, String(value)); },
     removeItem(key) { values.delete(key); }
   };
-  const storeContext = { window: { addEventListener() {} }, localStorage, console, TextEncoder };
+  const storeContext = { window: { addEventListener() {} }, localStorage, console };
   vm.runInNewContext(read('js/store.js'), storeContext);
   const store = storeContext.window.LHC_STORE;
   const status = await store.init();
   assert.equal(status.shared, false);
-  const exam = await store.addEvent('test-room', { title: 'Midterm', type: 'exam', date: '2026-10-19', start: '10:00', end: '11:00', professor: '', note: '' });
-  assert.equal(exam.professor, '');
-  await assert.rejects(() => store.addEvent('test-room', { title: 'Conflict', type: 'class', date: '2026-10-19', start: '10:30', end: '11:30' }), /overlaps/);
-  const parallel = await store.addEvent('different-room', { title: 'Concurrent lecture', type: 'class', date: '2026-10-19', start: '10:00', end: '11:00' });
-  assert.ok(parallel.id);
-  await assert.rejects(() => store.book(parallel.id, '1', 'Student', ''), /exam events only/);
-  assert.equal((await store.book(exam.id, '12', '', 'R001')).ok, true, 'roll number alone is allowed');
-  assert.equal((await store.book(exam.id, '12', 'Another', 'R002')).ok, false, 'taken seat is rejected');
-  assert.equal(Object.keys(await store.listBookings(exam.id)).length, 1);
-  assert.equal(store.canDelete(exam), true, 'creator browser may delete its event');
-  await store.releaseSeat(exam.id, '12');
-  assert.equal(Object.keys(await store.listBookings(exam.id)).length, 0);
-  await store.deleteEvent(exam);
-  assert.equal((await store.listEvents('test-room')).length, 0);
-  console.log('PASS: local fallback event conflicts, optional identity, seat release and owner deletion');
+  const recurring = await store.addEvents('test-room', [
+    { title: 'Signals', type: 'class', date: '2026-10-19', start: '10:00', end: '11:00', professor: 'Dr Test', note: '' },
+    { title: 'Signals', type: 'class', date: '2026-10-26', start: '10:00', end: '11:00', professor: 'Dr Test', note: '' }
+  ]);
+  assert.equal(recurring.length, 2);
+  assert.notEqual(recurring[0].id, recurring[1].id);
+  const stored = await store.listEvents('test-room');
+  assert.deepEqual(Array.from(stored, x => x.date), ['2026-10-19', '2026-10-26']);
+  assert.equal((await store.book(recurring[0].id, '12', 'Student')).ok, true);
+  assert.equal((await store.book(recurring[0].id, '12', 'Another Student')).ok, false);
+  assert.equal(Object.keys(await store.listBookings(recurring[0].id)).length, 1);
+  assert.equal(Object.keys(await store.listBookings(recurring[1].id)).length, 0);
+  console.log('PASS: local recurring sessions persist separately and keep seat marks isolated');
 })().catch(error => { console.error(error); process.exitCode = 1; });
+
+
+// Cloudflare config and admin routes: secrets stay server-side, event writes are admin-only.
+const configSource = read('supabase/config.js');
+assert.ok(configSource.includes("fetch('/api/config'"), 'browser config is loaded from the Pages Function');
+assert.ok(!configSource.includes('SUPABASE_SECRET_KEY') && !configSource.includes('ADMIN_PASSWORD'), 'browser config does not contain secrets');
+const cfConfig = read('functions/api/config.js');
+assert.ok(cfConfig.includes('supabasePublishableKey: String(env.SUPABASE_PUBLISHABLE_KEY') && !cfConfig.includes('SUPABASE_SECRET_KEY:'), 'public config function returns only public keys');
+const loginFn = read('functions/api/admin/login.js');
+const eventFn = read('functions/api/admin/events.js');
+const authFn = read('functions/_shared/admin-auth.js');
+assert.ok(loginFn.includes('env.ADMIN_PASSWORD'), 'admin password is read from the server environment');
+assert.ok(authFn.includes('HttpOnly') && authFn.includes('SameSite=Strict'), 'admin session cookie uses protective attributes');
+assert.ok(eventFn.includes('env.SUPABASE_SECRET_KEY'), 'privileged database key is only read in server function code');
+assert.ok(eventFn.includes('isAdmin(request, env)'), 'admin event APIs require a valid admin session');
+assert.ok(!read('supabase/schema.sql').includes('create policy "events public insert"'), 'browser clients cannot create events through RLS');
+assert.ok(read('supabase/schema.sql').includes('revoke insert, update, delete on table public.events'), 'direct browser event writes are revoked');
+assert.ok(read('js/room.js').includes('admin.html?room='), 'classroom event-strip link opens the admin page for that room');
+assert.ok(read('css/styles.css').includes('grid-template-columns: repeat(3, minmax(0, 1fr))'), 'mobile homepage grid has 3 columns for two rows of rooms');
+console.log('PASS: Cloudflare runtime config, admin session security, admin-only event writes and mobile room grid');

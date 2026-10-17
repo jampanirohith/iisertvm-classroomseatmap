@@ -1,0 +1,7 @@
+# Never commit local development secrets
+.dev.vars
+.dev.vars.*
+.env
+.env.*
+!.env.example
+.wrangler/

@@ -1,0 +1,1 @@
+1. Users can add a event to bookmark(add a bookmark symbol beside the event in the event bar) when bookmarked, those specific events willbe displayed in the homepage under my events

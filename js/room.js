@@ -12,7 +12,7 @@
   const when = e => `${e.date}T${e.start}`;
   const TYPE = { class: 'Class', exam: 'Exam', other: 'Other' };
   const NAME_KEY = 'lhc-name';
-  const ROLL_KEY = 'lhc-roll-number';
+  const Recurrence = window.LHC_RECURRENCE;
 
   const Store = window.LHC_STORE;
   const params = new URLSearchParams(location.search);
@@ -21,7 +21,7 @@
   const toastEl = $('toast');
   let toastTimer;
   const notify = message => { toastEl.textContent = message; toastEl.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove('show'), 3400); };
-  const hideEventTools = () => { $('event-bar').hidden = true; $('add-event').hidden = true; };
+  const hideEventTools = () => { $('event-bar').hidden = true; };
 
   if (!room) {
     document.title = 'Classroom not found - IISER TVM';
@@ -98,9 +98,8 @@
       const ev = currentEvent();
       const canMark = Boolean(ev && ev.type === 'exam');
       const b = canMark ? state.bookings[id] : null;
-      const identity = b ? [b.name, b.rollNumber].filter(Boolean).join(' · ') : '';
       const label = b
-        ? `Seat ${id}, marked${b.mine ? ' by you' : ''}${identity ? ' (' + identity + ')' : ''}`
+        ? `Seat ${id}, marked${b.mine ? ' by you' : ''}${b.name ? ' (' + b.name + ')' : ''}`
         : canMark ? `Seat ${id}, available to mark` : `Seat ${id}; seat marking is available for exams only`;
       const cls = `seat${id.length > 2 ? ' long' : ''}${b ? (b.mine ? ' mine' : ' booked') : ''}${canMark ? '' : ' readonly'}`;
       return `<button type="button" class="${cls}" data-seat="${esc(id)}" aria-label="${esc(label)}" title="${esc(label)}" aria-disabled="${!canMark || Boolean(b)}"${b ? ' disabled' : ''}>${esc(id)}</button>`;
@@ -211,7 +210,11 @@
   }
   function renderStrip() {
     const strip = $('event-strip');
-    if (!state.events.length) { strip.innerHTML = '<span class="strip-empty">No events yet. Add an event to get started.</span>'; updateArrows(); return; }
+    if (!state.events.length) {
+      strip.innerHTML = '<span class="strip-empty">No events have been added yet.</span>';
+      strip.insertAdjacentHTML('beforeend', `<a class="add-btn strip-add-btn" href="admin.html?room=${encodeURIComponent(room.id)}" aria-label="Sign in to add an event">+ Add event</a>`);
+      updateArrows(); return;
+    }
     let html = '', lastDate = null;
     state.events.forEach(e => {
       if (e.date !== lastDate) {
@@ -225,6 +228,7 @@
       const type = TYPE[e.type] ? e.type : 'other';
       html += `<button type="button" class="chip${selected ? ' selected' : ''}" data-event="${esc(e.id)}" data-type="${type}" title="${esc(e.title)} · ${esc(TYPE[type])}" aria-label="${esc(e.title)}, ${esc(TYPE[type])}, ${esc(dateLong(e.date))}, ${esc(timeLabel(e.start))}" aria-pressed="${selected}"><span class="chip-time">${esc(timeLabel(e.start))}</span><span class="chip-sub">${esc(e.title)}</span></button>`;
     });
+    html += `<a class="add-btn strip-add-btn" href="admin.html?room=${encodeURIComponent(room.id)}" aria-label="Sign in to add an event">+ Add event</a>`;
     strip.innerHTML = html;
     const sel = strip.querySelector('.chip.selected');
     if (sel && sel.scrollIntoView) sel.scrollIntoView({ inline: 'center', block: 'nearest' });
@@ -247,10 +251,7 @@
       ? [`${Object.keys(state.bookings).length} of ${room.capacity} seats marked`]
       : ['Seat marking is available for exams only'];
     if (ev.note) bits.push(ev.note);
-    const ownMark = ev.type === 'exam' ? Object.entries(state.bookings).find(([, mark]) => mark.mine) : null;
-    const changeSeat = ownMark ? ' <button type="button" class="link-btn" id="release-seat">Change my seat</button>' : '';
-    const deleteButton = Store.canDelete(ev) ? ' <button type="button" class="link-btn" id="delete-event">Delete event</button>' : '';
-    el.innerHTML = `${bits.map(esc).join(' &middot; ')}${changeSeat}${deleteButton}`;
+    el.textContent = bits.join(' · ');
   }
   function renderAll() { renderHeader(); renderStrip(); renderLegend(); renderInfo(); renderHall(); refit(); }
 
@@ -284,80 +285,8 @@
   $('event-strip').addEventListener('scroll', updateArrows);
   $('strip-left').addEventListener('click', () => $('event-strip').scrollBy({ left: -260, behavior: 'smooth' }));
   $('strip-right').addEventListener('click', () => $('event-strip').scrollBy({ left: 260, behavior: 'smooth' }));
-  $('event-info').addEventListener('click', async e => {
-    const ev = currentEvent();
-    if (!ev) return;
-    if (e.target.closest('#delete-event')) {
-      if (!confirm(`Delete "${ev.title}" and all of its seat marks? This cannot be undone.`)) return;
-      try {
-        await Store.deleteEvent(ev);
-        await loadEvents();
-        await selectEvent(defaultEvent(state.events));
-        notify('Event deleted.');
-      } catch (error) { console.error(error); notify(error.message || 'Could not delete this event.'); }
-      return;
-    }
-    if (e.target.closest('#release-seat')) {
-      const ownMark = Object.entries(state.bookings).find(([, mark]) => mark.mine);
-      if (!ownMark || !confirm(`Release seat ${ownMark[0]} so you can select another seat?`)) return;
-      try {
-        await Store.releaseSeat(ev.id, ownMark[0]);
-        await refreshBookings();
-        notify('Your seat mark was released. Select another seat when ready.');
-      } catch (error) { console.error(error); notify(error.message || 'Could not release your seat.'); }
-    }
-  });
-
-  // ---------- add one non-recurring event ----------
-  const eventDialog = $('event-dialog'), seatDialog = $('seat-dialog');
-  function updateEventControls() {
-    $('professor-field').hidden = $('event-type').value !== 'class';
-    $('event-professor').required = false;
-  }
-  $('event-type').addEventListener('change', updateEventControls);
-  $('add-event').addEventListener('click', () => {
-    $('event-form').reset();
-    $('event-date').value = todayISO();
-    $('event-start').value = '10:00';
-    $('event-end').value = '11:00';
-    $('event-dialog-title').textContent = `Add event to ${room.name}`;
-    updateEventControls();
-    eventDialog.showModal();
-    $('event-title').focus();
-  });
-  document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => btn.closest('dialog').close()));
-  $('event-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    const ev = {
-      title: $('event-title').value.trim(),
-      type: $('event-type').value,
-      date: $('event-date').value,
-      start: $('event-start').value,
-      end: $('event-end').value,
-      professor: $('event-professor').value.trim(),
-      note: $('event-note').value.trim()
-    };
-    if (!ev.title || !ev.date || !ev.start || !ev.end || ev.end <= ev.start) {
-      notify('Enter an event name, date, and valid start and end times.');
-      return;
-    }
-    try {
-      // Friendly client check; PostgreSQL exclusion constraint is authoritative for concurrent requests.
-      const existing = await Store.listEvents(room.id);
-      if (existing.some(prev => prev.date === ev.date && ev.start < prev.end && ev.end > prev.start)) {
-        notify(`There is already an event in this room on ${dateLong(ev.date)} that overlaps this time.`);
-        $('event-start').focus();
-        return;
-      }
-      const saved = await Store.addEvent(room.id, ev);
-      await loadEvents();
-      eventDialog.close();
-      await selectEvent(saved.id);
-      notify('Event added. Keep this browser’s site data so you can delete the event later.');
-    } catch (error) { console.error(error); notify(error.message || 'Could not save the event. Please try again.'); }
-  });
-
   // ---------- exam seat marking ----------
+  const seatDialog = $('seat-dialog');
   let seatToMark = null;
   $('hall').addEventListener('click', e => {
     const btn = e.target.closest('.seat');
@@ -368,45 +297,25 @@
     seatToMark = btn.dataset.seat;
     $('seat-no').textContent = seatToMark;
     $('seat-event').textContent = `${ev.title} · ${dateLong(ev.date)} · ${timeLabel(ev.start)} – ${timeLabel(ev.end)}`;
-    let savedName = '', savedRoll = '';
-    try {
-      savedName = localStorage.getItem(NAME_KEY) || '';
-      savedRoll = localStorage.getItem(ROLL_KEY) || '';
-    } catch { /* optional convenience only */ }
-    $('seat-name').value = savedName;
-    $('seat-roll').value = savedRoll;
+    let saved = ''; try { saved = localStorage.getItem(NAME_KEY) || ''; } catch { /* ignore */ }
+    $('seat-name').value = saved;
     seatDialog.showModal();
     $('seat-name').focus();
   });
   $('seat-form').addEventListener('submit', async e => {
     e.preventDefault();
     const name = $('seat-name').value.trim();
-    const roll = $('seat-roll').value.trim();
-    if (!name && !roll) { notify('Enter your name, roll number, or both.'); return; }
+    if (!name) { notify('Enter your name or initials.'); return; }
     const ev = currentEvent();
     if (!ev || ev.type !== 'exam') { seatDialog.close(); notify('Seat marking is available for exams only.'); return; }
     try {
-      const result = await Store.book(state.eventId, seatToMark, name, roll);
-      if (!result.ok) {
-        const messages = {
-          seat_taken: 'That seat has just been marked by someone else.',
-          taken: 'That seat has just been marked by someone else.',
-          roll_taken: 'That roll number is already marked for this exam.',
-          already_marked: 'This browser has already marked a seat for this exam. Use “Change my seat” to move it.',
-          duplicate: 'A duplicate seat mark or roll number was detected.'
-        };
-        notify(messages[result.reason] || 'This seat could not be marked. Refresh and try again.');
-        await refreshBookings();
-        return;
-      }
-      try {
-        if (name) localStorage.setItem(NAME_KEY, name);
-        if (roll) localStorage.setItem(ROLL_KEY, roll);
-      } catch { /* remembering fields is optional */ }
+      const result = await Store.book(state.eventId, seatToMark, name);
       seatDialog.close();
+      if (!result.ok) { notify('That seat was just marked by someone else.'); await refreshBookings(); return; }
+      try { localStorage.setItem(NAME_KEY, name); } catch { /* ignore */ }
       await refreshBookings();
       notify(`Seat ${seatToMark} marked.`);
-    } catch (error) { console.error(error); notify(error.message || 'Could not mark your seat. Please try again.'); }
+    } catch (error) { console.error(error); notify('Could not mark your seat. Please try again.'); }
   });
 
   Store.subscribe(async change => {

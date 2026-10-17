@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin - IISER TVM Lecture Hall Complex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/theme.js"></script>
+</head>
+<body>
+  <main class="shell narrow admin-shell">
+    <header class="admin-header">
+      <div>
+        <p class="eyebrow">IISER TVM · LHC</p>
+        <h1>Admin</h1>
+      </div>
+      <button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch to dark mode"></button>
+    </header>
+
+    <section class="admin-panel" id="login-panel">
+      <h2>Admin sign in</h2>
+      <p class="panel-intro">Sign in to create or remove classroom events. This page does not store your password.</p>
+      <form class="admin-form" id="login-form">
+        <label class="field" for="admin-password">Admin password
+          <input id="admin-password" type="password" autocomplete="current-password" required maxlength="1024">
+        </label>
+        <button class="btn primary" type="submit">Sign in</button>
+      </form>
+      <p class="admin-message" id="login-message" role="status" aria-live="polite"></p>
+      <a class="back" href="index.html">&larr; Back to classrooms</a>
+    </section>
+
+    <div id="admin-console" class="admin-hidden">
+      <section class="admin-panel">
+        <div class="admin-toolbar">
+          <label class="field" for="admin-room">Classroom
+            <select id="admin-room"></select>
+          </label>
+          <button type="button" class="admin-logout" id="admin-logout">Sign out</button>
+        </div>
+        <h2>Add event</h2>
+        <p class="panel-intro">Classes, exams and other activities appear in the selected classroom's event strip. Seat marking is available only for exams.</p>
+        <form class="admin-form" id="admin-event-form">
+          <label class="field" for="event-title">Event name
+            <input id="event-title" maxlength="80" required>
+          </label>
+          <label class="field" for="event-type">Type
+            <select id="event-type">
+              <option value="class">Class</option>
+              <option value="exam">Exam</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+          <label class="field" id="professor-field" for="event-professor">Professor (optional)
+            <input id="event-professor" maxlength="80" placeholder="Name, if known">
+          </label>
+          <label class="field" for="event-date">Date
+            <input id="event-date" type="date" required>
+          </label>
+          <section class="admin-repeat" id="class-repeat-panel" aria-label="Class repetition options">
+            <label class="admin-repeat-toggle" for="event-repeat">
+              <input id="event-repeat" type="checkbox">
+              <span><strong>Repeat this class</strong><small>Each occurrence will appear as a separate session.</small></span>
+            </label>
+            <div class="admin-repeat-settings" id="repeat-settings" hidden>
+              <label class="field" for="event-repeat-mode">Repeat pattern
+                <select id="event-repeat-mode">
+                  <option value="weekly">Every week (same weekday)</option>
+                  <option value="days">Choose weekdays</option>
+                </select>
+              </label>
+              <fieldset class="field" id="repeat-days-wrap" hidden>
+                <legend>Repeat on</legend>
+                <div class="admin-weekdays">
+                  <label><input type="checkbox" name="repeat-day" value="1"><span>Mon</span></label>
+                  <label><input type="checkbox" name="repeat-day" value="2"><span>Tue</span></label>
+                  <label><input type="checkbox" name="repeat-day" value="3"><span>Wed</span></label>
+                  <label><input type="checkbox" name="repeat-day" value="4"><span>Thu</span></label>
+                  <label><input type="checkbox" name="repeat-day" value="5"><span>Fri</span></label>
+                  <label><input type="checkbox" name="repeat-day" value="6"><span>Sat</span></label>
+                  <label><input type="checkbox" name="repeat-day" value="7"><span>Sun</span></label>
+                </div>
+              </fieldset>
+              <label class="field" for="event-repeat-until">Repeat until (inclusive)
+                <input id="event-repeat-until" type="date">
+              </label>
+              <p class="admin-message" id="repeat-summary" aria-live="polite">Weekly sessions will be created through the selected date.</p>
+            </div>
+          </section>
+          <div class="field-row">
+            <label class="field" for="event-start">Starts
+              <input id="event-start" type="time" required>
+            </label>
+            <label class="field" for="event-end">Ends
+              <input id="event-end" type="time" required>
+            </label>
+          </div>
+          <label class="field" for="event-note">Note (optional)
+            <textarea id="event-note" rows="2" maxlength="200"></textarea>
+          </label>
+          <button class="btn primary" type="submit">Save event</button>
+        </form>
+        <p class="admin-message" id="manager-message" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="admin-panel">
+        <h2>Events in this classroom</h2>
+        <p class="panel-intro">Deleting an event also removes its exam seat marks.</p>
+        <ul class="admin-event-list" id="admin-event-list"></ul>
+        <p class="admin-message" id="list-message" role="status" aria-live="polite"></p>
+      </section>
+      <p class="small" style="margin-top:18px"><a class="back" href="index.html">&larr; Back to classrooms</a></p>
+    </div>
+  </main>
+  <script src="js/data.js"></script>
+  <script src="js/recurrence.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>

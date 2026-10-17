@@ -19,11 +19,7 @@
         <p id="room-sub"></p>
       </div>
       <div class="topbar-actions">
-      <button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch to dark mode"></button>
-      <button type="button" class="add-btn" id="add-event">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l1-4L16 5l3 3L8 19z"/></svg>
-        Add event
-      </button>
+        <button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch to dark mode"></button>
       </div>
     </div>
   </header>
@@ -46,9 +42,7 @@
     <form id="seat-form" method="dialog">
       <h2>Mark your seat <span id="seat-no"></span></h2>
       <p class="muted small" id="seat-event"></p>
-      <p class="muted small">Enter at least one field. Roll numbers must be unique for this exam; duplicate names are allowed.</p>
-      <label class="field">Name (optional)<input id="seat-name" maxlength="30" autocomplete="name" placeholder="Your name"></label>
-      <label class="field">Roll number (optional)<input id="seat-roll" maxlength="30" autocomplete="off" placeholder="Your roll number"></label>
+      <label class="field">Your name or initials<input id="seat-name" maxlength="30" autocomplete="name" required></label>
       <div class="dialog-actions">
         <button type="button" class="btn" data-close>Cancel</button>
         <button type="submit" class="btn primary">Mark my seat</button>
@@ -56,35 +50,12 @@
     </form>
   </dialog>
 
-  <dialog id="event-dialog">
-    <form id="event-form" method="dialog">
-      <h2 id="event-dialog-title">Add event</h2>
-      <label class="field">Event name<input id="event-title" maxlength="80" required></label>
-      <label class="field">Type
-        <select id="event-type">
-          <option value="class">Class</option>
-          <option value="exam">Exam</option>
-          <option value="other">Other</option>
-        </select>
-      </label>
-      <label class="field" id="professor-field">Professor (optional)<input id="event-professor" maxlength="80" placeholder="Name, if known"></label>
-      <label class="field">Date<input type="date" id="event-date" required></label>
-      <div class="field-row">
-        <label class="field">Starts<input type="time" id="event-start" required></label>
-        <label class="field">Ends<input type="time" id="event-end" required></label>
-      </div>
-      <label class="field">Note (optional)<textarea id="event-note" rows="2" maxlength="200"></textarea></label>
-      <div class="dialog-actions">
-        <button type="button" class="btn" data-close>Cancel</button>
-        <button type="submit" class="btn primary">Add event</button>
-      </div>
-    </form>
-  </dialog>
 
   <div id="toast" role="status" aria-live="polite"></div>
   <script src="supabase/config.js"></script>
   <script src="js/data.js"></script>
   <script src="js/store.js"></script>
+  <script src="js/recurrence.js"></script>
   <script src="js/room.js"></script>
 </body>
 </html>
