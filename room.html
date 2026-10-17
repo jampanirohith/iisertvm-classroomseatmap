@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Classroom - IISER TVM</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/theme.js"></script>
+</head>
+<body class="room-page">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="back-btn" href="index.html" aria-label="Back to classrooms">
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+      </a>
+      <div class="title-block">
+        <p class="topbar-brand">IISER TVM · Lecture Hall Complex</p>
+        <h1 id="room-title">Classroom</h1>
+        <p id="room-sub"></p>
+      </div>
+      <div class="topbar-actions">
+      <button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch to dark mode"></button>
+      <button type="button" class="add-btn" id="add-event">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l1-4L16 5l3 3L8 19z"/></svg>
+        Add event
+      </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="event-bar" id="event-bar">
+    <div class="event-bar-inner">
+      <button type="button" class="strip-arrow left" id="strip-left" aria-label="Earlier events" hidden>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <div class="event-strip" id="event-strip" aria-label="Events"></div>
+      <button type="button" class="strip-arrow right" id="strip-right" aria-label="Later events" hidden>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <main class="layout-main" id="room-body"></main>
+
+  <dialog id="seat-dialog">
+    <form id="seat-form" method="dialog">
+      <h2>Mark your seat <span id="seat-no"></span></h2>
+      <p class="muted small" id="seat-event"></p>
+      <p class="muted small">Enter at least one field. Roll numbers must be unique for this exam; duplicate names are allowed.</p>
+      <label class="field">Name (optional)<input id="seat-name" maxlength="30" autocomplete="name" placeholder="Your name"></label>
+      <label class="field">Roll number (optional)<input id="seat-roll" maxlength="30" autocomplete="off" placeholder="Your roll number"></label>
+      <div class="dialog-actions">
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn primary">Mark my seat</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="event-dialog">
+    <form id="event-form" method="dialog">
+      <h2 id="event-dialog-title">Add event</h2>
+      <label class="field">Event name<input id="event-title" maxlength="80" required></label>
+      <label class="field">Type
+        <select id="event-type">
+          <option value="class">Class</option>
+          <option value="exam">Exam</option>
+          <option value="other">Other</option>
+        </select>
+      </label>
+      <label class="field" id="professor-field">Professor (optional)<input id="event-professor" maxlength="80" placeholder="Name, if known"></label>
+      <label class="field">Date<input type="date" id="event-date" required></label>
+      <div class="field-row">
+        <label class="field">Starts<input type="time" id="event-start" required></label>
+        <label class="field">Ends<input type="time" id="event-end" required></label>
+      </div>
+      <label class="field">Note (optional)<textarea id="event-note" rows="2" maxlength="200"></textarea></label>
+      <div class="dialog-actions">
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn primary">Add event</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="supabase/config.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/room.js"></script>
+</body>
+</html>
