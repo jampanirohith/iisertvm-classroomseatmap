@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="dark light">
-  <meta name="theme-color" content="#070708">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f3f4f6" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#070708" media="(prefers-color-scheme: dark)">
   <title>Admin - IISER TVM Lecture Hall Complex</title>
   <link rel="stylesheet" href="css/styles.css">
-  <script src="js/theme.js"></script>
 </head>
 <body>
   <main class="shell admin-shell">
@@ -16,7 +16,7 @@
         <h1>Events</h1>
         <p id="who-line">Lecture Hall Complex</p>
       </div>
-      <div class="admin-top-actions"><button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch theme"></button><button type="button" class="btn quiet admin-hidden" id="admin-logout">Sign out</button></div>
+      <div class="admin-top-actions"><button type="button" class="btn quiet admin-hidden" id="admin-logout">Sign out</button></div>
     </header>
 
     <section class="admin-panel" id="login-panel">

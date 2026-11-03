@@ -3,48 +3,47 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="dark light">
-  <meta name="theme-color" content="#070708">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#f3f4f6" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#070708" media="(prefers-color-scheme: dark)">
   <title>Lecture Hall Complex map - IISER TVM</title>
   <link rel="stylesheet" href="css/styles.css">
-  <script src="js/theme.js"></script>
 </head>
 <body class="map-page">
   <main class="shell">
-    <div class="map-page-actions"><a class="back" href="index.html">&larr; Lecture Hall Complex</a><button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch theme"></button></div>
+    <div class="map-page-actions"><a class="back" href="index.html">&larr; Lecture Hall Complex</a></div>
     <header class="room-head">
       <h1>Lecture Hall Complex</h1>
       <p class="muted">Select a classroom to see its seating arrangement.</p>
     </header>
     <section class="map-card" aria-label="Lecture Hall Complex floor plan">
-<svg class="lhc-map-svg" viewBox="0 0 1200 890" role="img" aria-labelledby="map-title">
+<svg class="lhc-map-svg" viewBox="0 0 1200 830" role="img" aria-labelledby="map-title">
 <title id="map-title">Lecture Hall Complex floor plan</title>
-<rect class="fp-bg" x="10" y="10" width="1180" height="870" rx="28"/>
-<polygon class="fp-floor" points="540,280 660,280 1010,640 870,840 330,840 190,640"/>
-<rect class="fp-lobby" x="500" y="40" width="200" height="110" rx="8"/>
-<rect class="fp-floor" x="545" y="140" width="110" height="150"/>
+<rect class="fp-bg" x="10" y="10" width="1180" height="810" rx="28"/>
+<polygon class="fp-floor" points="560,120 640,120 640,280 1020,660 900,790 300,790 180,660 560,280"/>
+<rect class="fp-lobby" x="505" y="28" width="190" height="104" rx="8"/>
 <text class="fp-label" x="600" y="215" text-anchor="middle">Lobby</text>
-<text class="fp-sign" x="450" y="82" text-anchor="middle">EXIT</text>
-<text class="fp-sign" x="750" y="82" text-anchor="middle">EXIT</text>
-<a class="room-hit" href="room.html?room=lhc-bhaskara" aria-label="Open Bhaskara seating arrangement"><title>Bhaskara</title><polygon class="room-shape tone-b" points="200,370 370,540 200,710 30,540"/><text class="fp-name" x="200" y="538" text-anchor="middle">Bhaskara</text><text class="fp-cap" x="200" y="574" text-anchor="middle" data-room-cap="lhc-bhaskara">{} seater</text></a>
-<a class="room-hit" href="room.html?room=lhc-kaumudi" aria-label="Open Kaumudi seating arrangement"><title>Kaumudi</title><polygon class="room-shape tone-b" points="1170,540 1000,710 830,540 1000,370"/><text class="fp-name" x="1000" y="538" text-anchor="middle">Kaumudi</text><text class="fp-cap" x="1000" y="574" text-anchor="middle" data-room-cap="lhc-kaumudi">{} seater</text></a>
-<a class="room-hit" href="room.html?room=lhc-jupiter" aria-label="Open Jupiter seating arrangement"><title>Jupiter</title><polygon class="room-shape tone-a" points="360,180 510,330 360,480 210,330"/><text class="fp-name" x="360" y="328" text-anchor="middle">Jupiter</text><text class="fp-cap" x="360" y="364" text-anchor="middle" data-room-cap="lhc-jupiter">{} seater</text></a>
-<a class="room-hit" href="room.html?room=lhc-venus" aria-label="Open Venus seating arrangement"><title>Venus</title><polygon class="room-shape tone-a" points="990,330 840,480 690,330 840,180"/><text class="fp-name" x="840" y="328" text-anchor="middle">Venus</text><text class="fp-cap" x="840" y="364" text-anchor="middle" data-room-cap="lhc-venus">{} seater</text></a>
-<a class="room-hit" href="room.html?room=lhc-aryabhatta" aria-label="Open Aryabhatta seating arrangement"><title>Aryabhatta</title><polygon class="room-shape tone-c" points="540,500 660,500 840,690 690,830 510,830 360,690"/><text class="fp-name" x="600" y="668" text-anchor="middle">Aryabhatta</text><text class="fp-cap" x="600" y="704" text-anchor="middle" data-room-cap="lhc-aryabhatta">{} seater</text></a>
-<polygon class="fp-lift" points="535,342 565,372 535,402 505,372"/>
-<text class="fp-lift-text" x="535" y="378" text-anchor="middle">LIFT</text>
-<polygon class="fp-lift" points="665,342 695,372 665,402 635,372"/>
-<text class="fp-lift-text" x="665" y="378" text-anchor="middle">LIFT</text>
-<polygon class="fp-service" points="545,438 655,438 640,480 560,480"/>
-<text class="fp-sign" x="600" y="466" text-anchor="middle">STAIRS</text>
-<polygon class="fp-wash" points="215,835 215,788 285,748 355,788 355,835"/>
-<polygon class="fp-wash" points="845,835 845,788 915,748 985,788 985,835"/>
-<text class="fp-label" x="285" y="822" text-anchor="middle">WASH</text>
-<text class="fp-label" x="915" y="822" text-anchor="middle">WASH</text>
-<rect class="fp-service" x="30" y="790" width="160" height="60" rx="6"/>
-<rect class="fp-service" x="1010" y="790" width="160" height="60" rx="6"/>
-<text class="fp-sign" x="110" y="827" text-anchor="middle">STAIRS</text>
-<text class="fp-sign" x="1090" y="827" text-anchor="middle">STAIRS</text>
+<text class="fp-sign" x="448" y="86" text-anchor="middle">EXIT</text>
+<text class="fp-sign" x="752" y="86" text-anchor="middle">EXIT</text>
+<a class="room-hit" href="room.html?room=lhc-bhaskara" aria-label="Open Bhaskara seating arrangement"><title>Bhaskara</title><polygon class="room-shape tone-b" points="200,340 380,520 200,700 20,520"/><text class="fp-name" x="200" y="518" text-anchor="middle">Bhaskara</text><text class="fp-cap" x="200" y="554" text-anchor="middle" data-room-cap="lhc-bhaskara">{} seater</text></a>
+<a class="room-hit" href="room.html?room=lhc-kaumudi" aria-label="Open Kaumudi seating arrangement"><title>Kaumudi</title><polygon class="room-shape tone-b" points="1180,520 1000,700 820,520 1000,340"/><text class="fp-name" x="1000" y="518" text-anchor="middle">Kaumudi</text><text class="fp-cap" x="1000" y="554" text-anchor="middle" data-room-cap="lhc-kaumudi">{} seater</text></a>
+<a class="room-hit" href="room.html?room=lhc-jupiter" aria-label="Open Jupiter seating arrangement"><title>Jupiter</title><polygon class="room-shape tone-a" points="345,140 510,305 345,470 180,305"/><text class="fp-name" x="345" y="303" text-anchor="middle">Jupiter</text><text class="fp-cap" x="345" y="339" text-anchor="middle" data-room-cap="lhc-jupiter">{} seater</text></a>
+<a class="room-hit" href="room.html?room=lhc-venus" aria-label="Open Venus seating arrangement"><title>Venus</title><polygon class="room-shape tone-a" points="1020,305 855,470 690,305 855,140"/><text class="fp-name" x="855" y="303" text-anchor="middle">Venus</text><text class="fp-cap" x="855" y="339" text-anchor="middle" data-room-cap="lhc-venus">{} seater</text></a>
+<a class="room-hit" href="room.html?room=lhc-aryabhatta" aria-label="Open Aryabhatta seating arrangement"><title>Aryabhatta</title><polygon class="room-shape tone-c" points="560,455 640,455 870,685 760,790 440,790 330,685"/><text class="fp-name" x="600" y="648" text-anchor="middle">Aryabhatta</text><text class="fp-cap" x="600" y="684" text-anchor="middle" data-room-cap="lhc-aryabhatta">{} seater</text></a>
+<polygon class="fp-lift" points="548,317 576,345 548,373 520,345"/>
+<text class="fp-lift-text" x="548" y="350" text-anchor="middle">LIFT</text>
+<polygon class="fp-lift" points="652,317 680,345 652,373 624,345"/>
+<text class="fp-lift-text" x="652" y="350" text-anchor="middle">LIFT</text>
+<polygon class="fp-service" points="560,388 640,388 628,438 572,438"/>
+<text class="fp-sign" x="600" y="419" text-anchor="middle">STAIRS</text>
+<polygon class="fp-wash" points="225,800 225,750 290,712 355,750 355,800"/>
+<polygon class="fp-wash" points="845,800 845,750 910,712 975,750 975,800"/>
+<text class="fp-label" x="290" y="786" text-anchor="middle">WASH</text>
+<text class="fp-label" x="910" y="786" text-anchor="middle">WASH</text>
+<rect class="fp-service" x="30" y="745" width="165" height="55" rx="6"/>
+<rect class="fp-service" x="1005" y="745" width="165" height="55" rx="6"/>
+<text class="fp-sign" x="112" y="780" text-anchor="middle">STAIRS</text>
+<text class="fp-sign" x="1088" y="780" text-anchor="middle">STAIRS</text>
 </svg>
     </section>
   </main>

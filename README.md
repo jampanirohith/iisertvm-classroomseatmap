@@ -18,7 +18,7 @@ Open a classroom to see its seating arrangement, browse its events by date, book
 - **My events** (homepage) has two columns: **Classes**, shown one date at a time (pick the date), and **Exams**, all in one list. Anything else you bookmark appears under **Other**.
 - **Seat map.** The whole classroom is in view when the page opens, including on phones. Pinch (or Ctrl + scroll) to zoom, drag to move around, and use the fit button to return to the whole room.
 - **Exams only:** tap a free seat to mark it with your name. Classes and other events are view-only.
-- **Theme.** The site opens in the dark obsidian-glass theme. Tap the sun/moon button (top right) to switch to light; the choice is remembered on that device.
+- **Theme.** The site follows the device's light or dark setting. There is no theme button.
 
 ## For the admin
 

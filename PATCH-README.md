@@ -1,7 +1,8 @@
-# Patch: obsidian theme, symmetric floor plan, calendar hover, clearer errors
+# Patch: device-default theme, new floor plan, calendar hover, clearer errors
 
 1. Unzip over your project folder (overwrite when asked).
 2. Delete these old files from the repo:
+   - js/theme.js
    - README1.md
    - README2.md
    - ideas.txt
