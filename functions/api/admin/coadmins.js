@@ -1,8 +1,8 @@
-import { databaseRequest, getActor, hashPassword, jsonResponse, normalizeEmail, sameOriginRequest } from '../../_shared/admin-auth.js';
+import { databaseHint, databaseRequest, getActor, hashPassword, jsonResponse, normalizeEmail, sameOriginRequest } from '../../_shared/admin-auth.js';
 
 const PASSWORD_ERROR = 'Use a password of 8 to 128 characters.';
 const validPassword = value => typeof value === 'string' && value.length >= 8 && value.length <= 128;
-const failure = result => jsonResponse({ error: 'Could not reach the co-admin list. Run supabase/schema.sql and check the Cloudflare settings.' }, result.response ? 502 : 503);
+const failure = result => jsonResponse({ error: databaseHint(result) }, result.response ? 502 : 503);
 
 // Admin only: create, list, reset the password of, and remove co-admins.
 export async function onRequest({ request, env }) {

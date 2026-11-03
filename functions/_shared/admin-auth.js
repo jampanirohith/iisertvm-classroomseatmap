@@ -157,10 +157,26 @@ export async function databaseRequest(env, resource, init = {}) {
   return { response, data, error: response.ok ? null : (data && (data.message || data.hint || data.details)) || `Supabase request failed (${response.status}).` };
 }
 
+// Turns a failed Supabase response into a short hint the admin can act on. It never includes keys or raw SQL.
+// The full detail is written to the Cloudflare logs (Pages > your project > Functions > Real-time logs).
+export function databaseHint(result) {
+  const status = result && result.response ? result.response.status : 0;
+  const code = String(result && result.data && result.data.code || '');
+  const text = String(result && result.error || '');
+  console.error('Supabase request failed', JSON.stringify({ status, code, message: text.slice(0, 300) }));
+  if (!status) return text || 'Could not connect to Supabase.';
+  if (code === '42703' || /column .* does not exist/i.test(text)) return 'The database is out of date (a column is missing). In the Supabase SQL editor, run supabase/schema.sql again.';
+  if (code === '42P01' || code === 'PGRST205' || /relation .* does not exist|could not find the table/i.test(text)) return 'A database table is missing. In the Supabase SQL editor, run supabase/schema.sql and then supabase/seed.sql.';
+  if (code === '42501' || /permission denied/i.test(text)) return 'Supabase denied access. Make sure SUPABASE_SECRET_KEY is the secret key (sb_secret_...), not the publishable one, then redeploy.';
+  if (status === 401 || status === 403 || /invalid api key|jwt/i.test(text) || code.startsWith('PGRST30')) return 'Supabase rejected the key. Check SUPABASE_URL and SUPABASE_SECRET_KEY in Cloudflare Pages, then redeploy.';
+  if (status === 404) return 'Supabase could not find that address. Check that SUPABASE_URL is your project URL (https://PROJECT_REF.supabase.co).';
+  return 'Supabase could not complete that request. Check the schema and Cloudflare environment settings.';
+}
+
 export async function findCoadmin(env, email) {
   const query = new URLSearchParams({ email: `eq.${email}`, select: 'email,password_hash', limit: '1' });
   const result = await databaseRequest(env, `coadmins?${query}`);
-  if (result.error) return { record: null, error: result.error };
+  if (result.error) return { record: null, error: result.error, result };
   return { record: Array.isArray(result.data) && result.data[0] ? result.data[0] : null, error: null };
 }
 

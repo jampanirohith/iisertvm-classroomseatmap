@@ -3,22 +3,25 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light dark">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#070708">
   <title>Lecture Hall Complex - IISER TVM</title>
   <link rel="stylesheet" href="css/styles.css">
+  <script src="js/theme.js"></script>
 </head>
 <body>
   <main class="shell">
     <header class="home-head">
+      <div class="home-head-top"><p class="eyebrow">IISER Thiruvananthapuram</p><button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch theme"></button></div>
       <h1>Lecture Hall Complex</h1>
-      <p>IISER Thiruvananthapuram</p>
+      <p class="lede">Pick a classroom to see its seating, schedule and exam seats.</p>
     </header>
     <section aria-labelledby="rooms-title">
       <h2 class="section-title" id="rooms-title">Classrooms</h2>
       <ul class="room-list" id="room-list"></ul>
     </section>
     <section class="my-events" id="my-events" aria-labelledby="my-title"></section>
-    <nav class="home-links" aria-label="More"><a href="interactive-map.html">Floor plan</a><a href="admin.html">Admin</a></nav>
+    <nav class="home-links" aria-label="More"><a href="interactive-map.html">Floor plan &rarr;</a><a href="admin.html">Admin</a></nav>
   </main>
   <script src="supabase/config.js"></script>
   <script src="js/format.js"></script>

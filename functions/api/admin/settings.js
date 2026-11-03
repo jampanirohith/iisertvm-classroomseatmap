@@ -1,4 +1,4 @@
-import { MODES, databaseRequest, getActor, getMode, jsonResponse, sameOriginRequest } from '../../_shared/admin-auth.js';
+import { MODES, databaseHint, databaseRequest, getActor, getMode, jsonResponse, sameOriginRequest } from '../../_shared/admin-auth.js';
 
 // Admin only: choose who may add events ('admin', 'coadmin' or 'anyone').
 export async function onRequest({ request, env }) {
@@ -19,6 +19,6 @@ export async function onRequest({ request, env }) {
     headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
     body: JSON.stringify([{ key: 'who_can_add', value, updated_at: new Date().toISOString() }])
   });
-  if (result.error) return jsonResponse({ error: 'Could not save the setting. Run supabase/schema.sql and check the Cloudflare settings.' }, result.response ? 502 : 503);
+  if (result.error) return jsonResponse({ error: databaseHint(result) }, result.response ? 502 : 503);
   return jsonResponse({ ok: true, whoCanAdd: value });
 }

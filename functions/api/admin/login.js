@@ -1,4 +1,4 @@
-import { constantTimeEqual, findCoadmin, hashPassword, jsonResponse, normalizeEmail, sameOriginRequest, sessionCookie, sessionFingerprint, verifyPassword } from '../../_shared/admin-auth.js';
+import { constantTimeEqual, databaseHint, findCoadmin, hashPassword, jsonResponse, normalizeEmail, sameOriginRequest, sessionCookie, sessionFingerprint, verifyPassword } from '../../_shared/admin-auth.js';
 
 export async function onRequest({ request, env }) {
   if (request.method !== 'POST') return jsonResponse({ error: 'Method not allowed.' }, 405, { Allow: 'POST' });
@@ -13,8 +13,8 @@ export async function onRequest({ request, env }) {
 
   if (body && body.role === 'coadmin') {
     const email = normalizeEmail(body.email);
-    const { record, error } = email ? await findCoadmin(env, email) : { record: null, error: null };
-    if (error) return jsonResponse({ error: 'Co-admin sign-in is not set up yet. Run supabase/schema.sql and check the Cloudflare settings.' }, 503);
+    const { record, error, result } = email ? await findCoadmin(env, email) : { record: null, error: null };
+    if (error) return jsonResponse({ error: `Co-admin sign-in is unavailable. ${databaseHint(result)}` }, 503);
     // Hash even when the account does not exist so the response time does not reveal which emails are co-admins.
     const valid = record ? await verifyPassword(supplied, record.password_hash) : (await hashPassword(supplied), false);
     if (!valid) return jsonResponse({ error: 'Incorrect email or password.' }, 401);

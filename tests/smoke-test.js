@@ -9,7 +9,7 @@ const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
 const plain = v => JSON.parse(JSON.stringify(v));   // values from the vm sandbox have a different Array prototype
 
 // Every script parses.
-for (const f of ['js/data.js', 'js/store.js', 'js/room.js', 'js/home.js', 'js/map.js', 'js/format.js', 'js/admin.js', 'js/week-calendar.js', 'js/recurrence.js', 'supabase/config.js']) new vm.Script(read(f), { filename: f });
+for (const f of ['js/data.js', 'js/store.js', 'js/room.js', 'js/home.js', 'js/map.js', 'js/format.js', 'js/admin.js', 'js/week-calendar.js', 'js/recurrence.js', 'js/theme.js', 'supabase/config.js']) new vm.Script(read(f), { filename: f });
 
 // Classrooms.
 const sandbox = { window: {} };
@@ -137,9 +137,14 @@ assert.ok(read('admin.html').includes('Professor (optional)'), 'professor field 
 assert.ok(roomPage.includes('Mark my seat'), 'exam seat UI uses marking language');
 assert.ok(!roomPage.includes('Book seat'), 'seat dialog does not use booking language');
 const css = read('css/styles.css');
-assert.ok(css.includes('@media (prefers-color-scheme: dark)') && css.includes('color-scheme: light dark'), 'the theme follows the device setting');
-for (const page of pages) assert.ok(!/theme-toggle|data-theme|js\/theme\.js/.test(read(page)), `${page}: no manual light/dark switch`);
-assert.ok(!fs.existsSync(path.join(root, 'js/theme.js')), 'theme.js is gone');
+assert.ok(css.includes(':root[data-theme="light"]') && css.includes('backdrop-filter'), 'obsidian glass theme with a light variant');
+for (const page of pages) {
+  const html = read(page);
+  assert.ok(html.includes('js/theme.js') && html.includes('data-theme-toggle'), `${page}: loads the theme switch`);
+}
+const themeCtx = { window: {}, document: { documentElement: { dataset: {} }, readyState: 'complete', querySelectorAll: () => [] }, localStorage: { getItem: () => null, setItem() {} } };
+vm.runInNewContext(read('js/theme.js'), themeCtx);
+assert.equal(themeCtx.document.documentElement.dataset.theme, 'dark', 'obsidian dark is the default theme');
 assert.ok(/@media \(max-width: 759px\)[\s\S]*\.room-list \{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/.test(css), 'phones show two classrooms per row');
 for (const id of ['event-repeat', 'event-repeat-mode', 'event-repeat-until', 'repeat-days-wrap']) assert.ok(read('admin.html').includes(`id="${id}"`), `admin recurrence control ${id}`);
 for (const script of ['js/format.js', 'js/recurrence.js', 'js/week-calendar.js']) assert.ok(fs.existsSync(path.join(root, script)), `${script} exists`);

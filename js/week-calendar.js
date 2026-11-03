@@ -116,6 +116,26 @@
     });
     document.addEventListener('pointercancel', () => { if (drag) { drag.block.classList.remove('dragging'); drag.block.style.transform = ''; drag = null; } });
 
+    // ---------- highlight only the half-hour cell under the pointer (the one a click would add to) ----------
+    const hover = document.createElement('div');
+    hover.className = 'cal-hover';
+    const slotH = SNAP * HOUR_H / 60;
+    const slotAt = (col, clientY) => {
+      const y = Math.max(0, clientY - col.getBoundingClientRect().top);
+      const index = Math.min((range.to - range.from) * 60 / SNAP - 1, Math.floor(y / slotH));
+      return { top: index * slotH, mins: range.from * 60 + index * SNAP };
+    };
+    grid.addEventListener('pointermove', e => {
+      const col = e.target.closest('.cal-col');
+      if (!col || e.target.closest('.cal-ev') || drag || e.pointerType === 'touch') { hover.remove(); return; }
+      const slot = slotAt(col, e.clientY);
+      hover.style.top = `${slot.top}px`;
+      hover.style.height = `${slotH}px`;
+      hover.textContent = F.timeLabel(hhmm(slot.mins)).replace(/^0/, '');
+      if (hover.parentNode !== col) col.appendChild(hover);
+    });
+    grid.addEventListener('pointerleave', () => hover.remove());
+
     container.addEventListener('click', e => {
       if (suppressClick) return;
       const nav = e.target.closest('[data-cal]');

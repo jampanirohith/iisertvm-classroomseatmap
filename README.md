@@ -18,7 +18,7 @@ Open a classroom to see its seating arrangement, browse its events by date, book
 - **My events** (homepage) has two columns: **Classes**, shown one date at a time (pick the date), and **Exams**, all in one list. Anything else you bookmark appears under **Other**.
 - **Seat map.** The whole classroom is in view when the page opens, including on phones. Pinch (or Ctrl + scroll) to zoom, drag to move around, and use the fit button to return to the whole room.
 - **Exams only:** tap a free seat to mark it with your name. Classes and other events are view-only.
-- The page follows the device's light or dark setting. There is no theme switch.
+- **Theme.** The site opens in the dark obsidian-glass theme. Tap the sun/moon button (top right) to switch to light; the choice is remembered on that device.
 
 ## For the admin
 
@@ -60,6 +60,21 @@ The **+ Event** button on a classroom page appears only for people who may add e
 4. Run `supabase/verify.sql` and check the expected results noted inside.
 
 Secrets are read only by Cloudflare Pages Functions; they are never in the HTML or `js/` files. Sessions use a signed, `HttpOnly`, `SameSite=Strict` cookie that lasts eight hours. Co-admin passwords are stored as salted PBKDF2 hashes.
+
+## Troubleshooting: "Supabase could not complete that request"
+
+The admin page now says what is actually wrong. The usual causes:
+
+| Message | Fix |
+| --- | --- |
+| The database is out of date (a column is missing) | Supabase > SQL editor > run `supabase/schema.sql` again (safe to repeat). This is the most common cause after updating the site. |
+| A database table is missing | Run `supabase/schema.sql`, then `supabase/seed.sql`. |
+| Supabase rejected the key / denied access | In Cloudflare Pages > Settings > Variables and Secrets, check `SUPABASE_URL` (the project URL) and `SUPABASE_SECRET_KEY` (the `sb_secret_...` key, not the publishable one). Redeploy after changing them. |
+| Supabase is not configured | Add `SUPABASE_URL` and `SUPABASE_SECRET_KEY` for **Production** (and Preview if you test there), then redeploy. |
+
+Full details are written to the Cloudflare logs: Workers & Pages > your project > the deployment > Functions > Real-time logs.
+
+Files that are not part of the website (`tests/`, `*.sql`, `*.md`) are hidden from visitors by `functions/_middleware.js`.
 
 ## Preview without any setup
 
@@ -106,4 +121,5 @@ layout: {
 ```
 node tests/smoke-test.js    # layouts, pages, theme, bookmarks, page structure
 node tests/api-test.js      # sign-in, roles, who-can-add modes, edit/reschedule, delete rules, co-admins
+node tests/error-hint-test.js   # Supabase failures give specific, safe hints
 ```

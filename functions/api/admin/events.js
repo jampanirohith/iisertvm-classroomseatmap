@@ -1,4 +1,4 @@
-import { canAddEvents, databaseRequest, getActor, getMode, jsonResponse, sameOriginRequest } from '../../_shared/admin-auth.js';
+import { canAddEvents, databaseHint, databaseRequest, getActor, getMode, jsonResponse, sameOriginRequest } from '../../_shared/admin-auth.js';
 
 const ROOM_IDS = new Set(['lhc-jupiter', 'lhc-venus', 'lhc-bhaskara', 'lhc-kaumudi', 'lhc-aryabhatta']);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -20,7 +20,7 @@ function publicError(result) {
     return jsonResponse({ error: 'This event conflicts with an event already saved. Refresh the calendar and check the time range.' }, 409);
   }
   const status = result.response.status >= 400 && result.response.status < 500 ? result.response.status : 502;
-  return jsonResponse({ error: 'Supabase could not complete that request. Check the schema and Cloudflare environment settings.' }, status);
+  return jsonResponse({ error: databaseHint(result) }, status);
 }
 
 // Validates one session from the browser. Returns the cleaned values, or null when something is wrong.
