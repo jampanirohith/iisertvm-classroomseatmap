@@ -10,3 +10,6 @@
    - tests/supabase-contract-test.js
    - PATCH-README.md (this file, once applied)
 3. Commit and push; Cloudflare Pages redeploys. No new variables or SQL.
+
+## Class schedule
+Run `supabase/schedule.sql` in the Supabase SQL editor. It deletes every event and adds the timetable (27 Jul to 17 Nov 2026).

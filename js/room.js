@@ -221,9 +221,9 @@
   const eventDates = () => [...new Set(state.events.map(e => e.date))];
   function updateArrows() {
     const strip = $('date-strip');
-    const overflow = strip.scrollWidth > strip.clientWidth + 2;
-    $('strip-left').hidden = !overflow || strip.scrollLeft <= 2;
-    $('strip-right').hidden = !overflow || strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 2;
+    const list = eventDates(), at = list.indexOf(state.date);
+    $('strip-left').hidden = at <= 0;
+    $('strip-right').hidden = at < 0 || at >= list.length - 1;
   }
   function renderStrip() {
     const bar = $('event-bar'), dates = $('date-strip'), strip = $('event-strip');
@@ -243,7 +243,8 @@
       return `<div class="chip-wrap"><button type="button" class="chip${selected ? ' selected' : ''}" data-event="${esc(e.id)}" data-type="${type}" title="${esc(e.title)} · ${esc(TYPE[type])}" aria-label="${esc(e.title)}, ${esc(TYPE[type])}, ${esc(dateLong(e.date))}, ${esc(timeLabel(e.start))}" aria-pressed="${selected}"><span class="chip-time">${esc(timeLabel(e.start))}</span><span class="chip-sub">${esc(e.title)}</span></button><button type="button" class="chip-mark" data-bookmark="${esc(e.id)}" aria-pressed="${marked}" aria-label="${marked ? 'Remove bookmark from' : 'Bookmark'} ${esc(e.title)}" title="${marked ? 'Remove from My events' : 'Add to My events'}">${flag}</button></div>`;
     }).join('');
     const sel = dates.querySelector('.date-pill.selected');
-    if (sel && sel.scrollIntoView) sel.scrollIntoView({ inline: 'center', block: 'nearest' });
+    // The chosen date sits at the left edge, just after the back arrow; the arrows step one date at a time.
+    if (sel) dates.scrollLeft += sel.getBoundingClientRect().left - dates.getBoundingClientRect().left - 40;
     updateArrows();
   }
   function renderFoot() {
@@ -317,9 +318,13 @@
     if (chip && chip.dataset.event !== String(state.eventId)) selectEvent(chip.dataset.event);
   });
   $('room-foot').addEventListener('click', e => { const mark = e.target.closest('[data-bookmark]'); if (mark) toggleBookmark(mark.dataset.bookmark); });
-  $('date-strip').addEventListener('scroll', updateArrows);
-  $('strip-left').addEventListener('click', () => $('date-strip').scrollBy({ left: -240, behavior: 'smooth' }));
-  $('strip-right').addEventListener('click', () => $('date-strip').scrollBy({ left: 240, behavior: 'smooth' }));
+  function stepDate(by) {
+    const list = eventDates(), next = list[list.indexOf(state.date) + by];
+    const first = next && state.events.find(x => x.date === next);
+    if (first) selectEvent(first.id);
+  }
+  $('strip-left').addEventListener('click', () => stepDate(-1));
+  $('strip-right').addEventListener('click', () => stepDate(1));
 
   // ---------- exam seat marking ----------
   const seatDialog = $('seat-dialog');
