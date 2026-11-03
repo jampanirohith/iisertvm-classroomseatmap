@@ -1,18 +1,9 @@
 (function () {
   'use strict';
   const $ = id => document.getElementById(id);
-  const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const pad = n => String(n).padStart(2, '0');
-  const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
-  const parseDate = iso => { const d = new Date(`${iso}T12:00:00`); return Number.isNaN(+d) ? null : d; };
-  const fmt = (d, opts) => new Intl.DateTimeFormat('en-GB', opts).format(d);
-  const dateLong = iso => { const d = parseDate(iso); return d ? `${fmt(d, { weekday: 'short' })}, ${d.getDate()} ${fmt(d, { month: 'long' })}, ${d.getFullYear()}` : String(iso || ''); };
-  const dateShort = iso => { const d = parseDate(iso); return d ? `${fmt(d, { weekday: 'short' })}, ${d.getDate()} ${fmt(d, { month: 'short' })}`.toUpperCase() : String(iso || ''); };
-  const timeLabel = v => { const [h, m] = String(v || '').slice(0, 5).split(':').map(Number); if (!Number.isFinite(h) || !Number.isFinite(m)) return String(v || ''); return `${pad(h % 12 || 12)}:${pad(m)} ${h >= 12 ? 'PM' : 'AM'}`; };
+  const { esc, pad, todayISO, parseDate, part, dateLong, timeLabel, TYPE, typeOf } = window.LHC_FMT;
   const when = e => `${e.date}T${e.start}`;
-  const TYPE = { class: 'Class', exam: 'Exam', other: 'Other' };
   const NAME_KEY = 'lhc-name';
-  const Recurrence = window.LHC_RECURRENCE;
 
   const Store = window.LHC_STORE;
   const params = new URLSearchParams(location.search);
@@ -21,39 +12,32 @@
   const toastEl = $('toast');
   let toastTimer;
   const notify = message => { toastEl.textContent = message; toastEl.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove('show'), 3400); };
-  const hideEventTools = () => { $('event-bar').hidden = true; };
 
   if (!room) {
     document.title = 'Classroom not found - IISER TVM';
     $('room-title').textContent = 'Classroom not found';
-    hideEventTools();
+    $('add-event').hidden = true;
     root.innerHTML = '<p class="pending">Choose a classroom from the <a href="index.html">Lecture Hall Complex</a> list.</p>';
     return;
   }
   document.title = `${room.name} - Lecture Hall Complex - IISER TVM`;
   $('room-title').textContent = room.name;
-  $('room-sub').textContent = `Lecture Hall Complex | ${room.capacity} seats`;
+  $('room-sub').textContent = `${room.capacity} seats`;
+  $('add-event').href = `admin.html?room=${encodeURIComponent(room.id)}`;
 
-  if (!room.layout) {
-    hideEventTools();
-    root.innerHTML = `<div class="pending"><h2>Seating arrangement</h2><p>The seating arrangement for ${esc(room.name)} will be added soon.</p></div>`;
-    return;
-  }
-
-  const magnifier = plus => `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="10.5" cy="10.5" r="7"/><path d="M16 16l5 5M7.5 10.5h6${plus ? 'M10.5 7.5v6' : ''}"/></svg>`;
+  const flag = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.5L5 21V4a1 1 0 0 1 1-1z"/></svg>';
+  const zoomIcon = d => `<svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="${d}"/></svg>`;
   root.innerHTML = `
     <div class="map-scroll" id="map-scroll"><div class="map-sizer" id="map-sizer"><div class="hall" id="hall"></div></div></div>
-    <div class="legend-bar">
-      <div class="legend" aria-label="Seat status legend" id="seat-legend"></div>
-      <div class="event-info" id="event-info"></div>
-    </div>
-    <div class="zoom-tools" role="group" aria-label="Zoom">
-      <button type="button" data-zoom="in" aria-label="Zoom in">${magnifier(true)}</button>
-      <button type="button" data-zoom="out" aria-label="Zoom out">${magnifier(false)}</button>
+    <div class="zoom-tools" role="group" aria-label="Zoom" id="zoom-tools">
+      <button type="button" data-zoom="in" aria-label="Zoom in">${zoomIcon('M12 5v14M5 12h14')}</button>
+      <button type="button" data-zoom="out" aria-label="Zoom out">${zoomIcon('M5 12h14')}</button>
+      <button type="button" data-zoom="fit" aria-label="Fit whole classroom" title="Fit whole classroom">${zoomIcon('M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5')}</button>
     </div>`;
 
-  const state = { events: [], eventId: null, bookings: {}, scale: 1, manualZoom: false };
+  const state = { events: [], eventId: null, date: null, bookings: {}, scale: 1, manualZoom: false };
   const currentEvent = () => state.events.find(e => String(e.id) === String(state.eventId)) || null;
+  const hasLoose = Boolean(room.layout && (room.layout.looseChairs || room.layout.rows.some(r => r.tail && r.tail.kind === 'platform')));
 
   // ---------- seating map ----------
   function segments(row) {
@@ -100,7 +84,7 @@
       const b = canMark ? state.bookings[id] : null;
       const label = b
         ? `Seat ${id}, marked${b.mine ? ' by you' : ''}${b.name ? ' (' + b.name + ')' : ''}`
-        : canMark ? `Seat ${id}, available to mark` : `Seat ${id}; seat marking is available for exams only`;
+        : canMark ? `Seat ${id}, available to mark` : `Seat ${id}`;
       const cls = `seat${id.length > 2 ? ' long' : ''}${b ? (b.mine ? ' mine' : ' booked') : ''}${canMark ? '' : ' readonly'}`;
       return `<button type="button" class="${cls}" data-seat="${esc(id)}" aria-label="${esc(label)}" title="${esc(label)}" aria-disabled="${!canMark || Boolean(b)}"${b ? ' disabled' : ''}>${esc(id)}</button>`;
     };
@@ -128,9 +112,8 @@
       let cells = '';
       if (row.lead) {
         const inStairs = stairs && stairs.side === 'left' && i >= stairs.fromRow && i <= stairs.toRow;
-        const edge = inStairs ? `${i === stairs.fromRow ? ' first' : ''}${i === stairs.toRow ? ' last' : ''}` : '';
         const label = inStairs && i === Math.round((stairs.fromRow + stairs.toRow) / 2) ? '<i class="vlabel">STAIRS</i>' : '';
-        cells += `<span class="span lead${inStairs ? ' stairs' + edge : ''}" style="--n:${row.lead}">${label}</span>`;
+        cells += `<span class="span lead${inStairs ? ' stairs' : ''}" style="--n:${row.lead}">${label}</span>`;
       }
       segments(row).forEach((seg, s) => {
         if (s > 0) cells += `<span class="${aisleClass}">${L.aisleLabel && i === labelRow ? `<i class="vlabel">${esc(L.aisleLabel)}</i>` : ''}</span>`;
@@ -139,9 +122,8 @@
       if (row.tail) {
         const run = tailRun(i);
         if (run.kind === 'stairs') {
-          const edge = `${i === run.a ? ' first' : ''}${i === run.b ? ' last' : ''}`;
           const label = i === Math.round((run.a + run.b) / 2) ? '<i class="vlabel">STAIRS</i>' : '';
-          cells += `<span class="span tail stairs${edge}" style="--n:${row.tail.cols}">${label}</span>`;
+          cells += `<span class="span tail stairs" style="--n:${row.tail.cols}">${label}</span>`;
         } else {
           cells += `<span class="span tail platform" style="--n:${row.tail.cols}">${chairs(row.tail.cols)}</span>`;
         }
@@ -158,9 +140,13 @@
     return frontHtml + looseHtml + seatRows + rearHtml;
   }
 
-  function renderHall() { $('hall').innerHTML = hallHtml(); applyScale(); }
+  function renderHall() { if (room.layout) { $('hall').innerHTML = hallHtml(); applyScale(); } }
 
-  // ---------- zoom: the map fills the screen ----------
+  // ---------- zoom: the whole classroom is in view by default ----------
+  const MIN_SCALE = 0.2, MAX_SCALE = 3;
+  const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+  const isPhone = () => Boolean(window.matchMedia && window.matchMedia('(max-width: 759px)').matches);
+
   function applyScale() {
     const hall = $('hall'), sizer = $('map-sizer'), w = hall.offsetWidth, h = hall.offsetHeight;
     if (!w) return;
@@ -168,92 +154,127 @@
     sizer.style.width = `${Math.ceil(w * state.scale)}px`;
     sizer.style.height = `${Math.ceil(h * state.scale)}px`;
   }
+  // The scale that shows every seat at once. Phones may shrink the map a long way; larger screens keep seats readable.
   function fitScale() {
-    const hall = $('hall'), box = $('map-scroll');
+    const hall = $('hall'), box = $('map-scroll'), style = getComputedStyle(box);
     const w = hall.offsetWidth, h = hall.offsetHeight;
-    if (!w || !h) return 1;
-    // On phones, retain comfortable seat sizes and let the map pan in both directions.
-    // Scaling the full hall to the screen made seat buttons too small to use accurately.
-    if (window.matchMedia && window.matchMedia('(max-width: 759px)').matches) return 1;
-    const availW = box.clientWidth - 28;
-    if (availW <= 0) return 1;
-    // The natural seat dimensions are the priority. Only scale down slightly if a
-    // very wide auditorium cannot fit horizontally; never compress to fit height.
-    const widthScale = availW / w;
-    return Math.max(0.9, Math.min(1.08, widthScale));
+    const availW = box.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+    const availH = box.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
+    if (!w || !h || availW <= 0 || availH <= 0) return 1;
+    const whole = Math.min(availW / w, availH / h);
+    return isPhone() ? clamp(whole, MIN_SCALE, 1.4) : clamp(whole, 0.75, 1.3);
   }
-  function refit() { if (!state.manualZoom) state.scale = fitScale(); applyScale(); }
-  document.querySelectorAll('[data-zoom]').forEach(btn => btn.addEventListener('click', () => {
+  function refit() {
+    if (!room.layout) return;
+    if (!state.manualZoom) {
+      state.scale = fitScale();
+      applyScale();
+      const box = $('map-scroll'); box.scrollLeft = 0; box.scrollTop = 0;
+    } else applyScale();
+  }
+  // Zoom around a point (cx, cy are relative to the map area) so the content under the fingers stays put.
+  function zoomAt(next, cx, cy) {
+    const box = $('map-scroll'), sizer = $('map-sizer');
+    next = clamp(next, MIN_SCALE, MAX_SCALE);
+    const ax = (box.scrollLeft + cx - sizer.offsetLeft) / state.scale, ay = (box.scrollTop + cy - sizer.offsetTop) / state.scale;
     state.manualZoom = true;
-    state.scale = Math.max(0.4, Math.min(3.2, state.scale * (btn.dataset.zoom === 'in' ? 1.2 : 1 / 1.2)));
+    state.scale = next;
     applyScale();
-  }));
-  window.addEventListener('resize', () => {
-    if (window.matchMedia && window.matchMedia('(max-width: 759px)').matches && !state.manualZoom) state.scale = 1;
-    refit(); updateArrows();
-  });
-
-  // ---------- header, event chips, summary ----------
-  function renderHeader() {
-    // Keep the room identity stable; selected event details live in the timeline and footer.
-    $('room-title').textContent = room.name;
-    const ev = currentEvent();
-    $('room-sub').textContent = ev
-      ? `${room.capacity} seats · ${dateLong(ev.date)} · ${timeLabel(ev.start)}${ev.professor ? ' · Prof. ' + ev.professor : ''}`
-      : `Lecture Hall Complex | ${room.capacity} seats`;
+    box.scrollLeft = ax * next + sizer.offsetLeft - cx;
+    box.scrollTop = ay * next + sizer.offsetTop - cy;
   }
+  function wireZoom() {
+    const box = $('map-scroll');
+    $('zoom-tools').addEventListener('click', e => {
+      const btn = e.target.closest('[data-zoom]');
+      if (!btn) return;
+      if (btn.dataset.zoom === 'fit') { state.manualZoom = false; refit(); return; }
+      zoomAt(state.scale * (btn.dataset.zoom === 'in' ? 1.25 : 1 / 1.25), box.clientWidth / 2, box.clientHeight / 2);
+    });
+    // Pinch with two fingers on a touch screen, or Ctrl + scroll wheel on a computer.
+    let pinch = null;
+    const centre = t => { const r = box.getBoundingClientRect(); return { x: (t[0].clientX + t[1].clientX) / 2 - r.left, y: (t[0].clientY + t[1].clientY) / 2 - r.top, d: Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY) }; };
+    box.addEventListener('touchstart', e => { if (e.touches.length === 2) { const c = centre(e.touches); pinch = { d: c.d, scale: state.scale }; } }, { passive: true });
+    box.addEventListener('touchmove', e => {
+      if (e.touches.length !== 2 || !pinch) return;
+      e.preventDefault();
+      const c = centre(e.touches);
+      if (pinch.d > 0) zoomAt(pinch.scale * (c.d / pinch.d), c.x, c.y);
+    }, { passive: false });
+    const endPinch = e => { if (e.touches.length < 2) pinch = null; };
+    box.addEventListener('touchend', endPinch, { passive: true });
+    box.addEventListener('touchcancel', endPinch, { passive: true });
+    box.addEventListener('wheel', e => {
+      if (!e.ctrlKey) return;
+      e.preventDefault();
+      const r = box.getBoundingClientRect();
+      zoomAt(state.scale * Math.exp(-e.deltaY / 300), e.clientX - r.left, e.clientY - r.top);
+    }, { passive: false });
+    window.addEventListener('resize', () => { refit(); updateArrows(); });
+    window.addEventListener('orientationchange', () => setTimeout(refit, 250));
+    // The map area changes height when the event bar or footer changes; keep the whole classroom in view.
+    if ('ResizeObserver' in window) new ResizeObserver(() => { if (!state.manualZoom) refit(); }).observe(box);
+  }
+
+  // ---------- event strip and footer ----------
+  // The event column shows one date at a time: pick a date, then choose among that day's events.
+  const eventDates = () => [...new Set(state.events.map(e => e.date))];
   function updateArrows() {
-    const strip = $('event-strip');
+    const strip = $('date-strip');
     const overflow = strip.scrollWidth > strip.clientWidth + 2;
     $('strip-left').hidden = !overflow || strip.scrollLeft <= 2;
     $('strip-right').hidden = !overflow || strip.scrollLeft + strip.clientWidth >= strip.scrollWidth - 2;
   }
   function renderStrip() {
-    const strip = $('event-strip');
-    if (!state.events.length) {
-      strip.innerHTML = '<span class="strip-empty">No events have been added yet.</span>';
-      strip.insertAdjacentHTML('beforeend', `<a class="add-btn strip-add-btn" href="admin.html?room=${encodeURIComponent(room.id)}" aria-label="Sign in to add an event">+ Add event</a>`);
-      updateArrows(); return;
-    }
-    let html = '', lastDate = null;
-    state.events.forEach(e => {
-      if (e.date !== lastDate) {
-        const d = parseDate(e.date);
-        const day = d ? fmt(d, { weekday: 'short' }).toUpperCase() : '';
-        const date = d ? `${d.getDate()} ${fmt(d, { month: 'short' }).toUpperCase()}` : dateShort(e.date);
-        html += `<span class="chip-date"><span class="chip-date-day">${esc(day)}</span><span class="chip-date-date">${esc(date)}</span></span>`;
-        lastDate = e.date;
-      }
+    const bar = $('event-bar'), dates = $('date-strip'), strip = $('event-strip');
+    bar.hidden = !state.events.length;
+    if (!state.events.length) return;
+    if (!state.date || !eventDates().includes(state.date)) state.date = (currentEvent() || state.events[0]).date;
+    const today = todayISO();
+    dates.innerHTML = eventDates().map(date => {
+      const d = parseDate(date), selected = date === state.date;
+      const label = date === today ? 'Today' : d ? part(d, { weekday: 'short' }) : '';
+      return `<button type="button" class="date-pill${selected ? ' selected' : ''}" data-date="${esc(date)}" aria-pressed="${selected}" aria-label="${esc(dateLong(date))}"><span>${esc(label)}</span><b>${esc(d ? `${d.getDate()} ${part(d, { month: 'short' })}` : date)}</b></button>`;
+    }).join('');
+    strip.innerHTML = state.events.filter(e => e.date === state.date).map(e => {
       const selected = String(e.id) === String(state.eventId);
-      const type = TYPE[e.type] ? e.type : 'other';
-      html += `<button type="button" class="chip${selected ? ' selected' : ''}" data-event="${esc(e.id)}" data-type="${type}" title="${esc(e.title)} · ${esc(TYPE[type])}" aria-label="${esc(e.title)}, ${esc(TYPE[type])}, ${esc(dateLong(e.date))}, ${esc(timeLabel(e.start))}" aria-pressed="${selected}"><span class="chip-time">${esc(timeLabel(e.start))}</span><span class="chip-sub">${esc(e.title)}</span></button>`;
-    });
-    html += `<a class="add-btn strip-add-btn" href="admin.html?room=${encodeURIComponent(room.id)}" aria-label="Sign in to add an event">+ Add event</a>`;
-    strip.innerHTML = html;
-    const sel = strip.querySelector('.chip.selected');
+      const type = typeOf(e.type);
+      const marked = Store.bookmarks.has(e.id);
+      return `<div class="chip-wrap"><button type="button" class="chip${selected ? ' selected' : ''}" data-event="${esc(e.id)}" data-type="${type}" title="${esc(e.title)} · ${esc(TYPE[type])}" aria-label="${esc(e.title)}, ${esc(TYPE[type])}, ${esc(dateLong(e.date))}, ${esc(timeLabel(e.start))}" aria-pressed="${selected}"><span class="chip-time">${esc(timeLabel(e.start))}</span><span class="chip-sub">${esc(e.title)}</span></button><button type="button" class="chip-mark" data-bookmark="${esc(e.id)}" aria-pressed="${marked}" aria-label="${marked ? 'Remove bookmark from' : 'Bookmark'} ${esc(e.title)}" title="${marked ? 'Remove from My events' : 'Add to My events'}">${flag}</button></div>`;
+    }).join('');
+    const sel = dates.querySelector('.date-pill.selected');
     if (sel && sel.scrollIntoView) sel.scrollIntoView({ inline: 'center', block: 'nearest' });
     updateArrows();
   }
-  function renderLegend() {
-    const legend = $('seat-legend');
-    const ev = currentEvent();
-    const loose = room.layout.looseChairs || room.layout.rows.some(r => r.tail && r.tail.kind === 'platform') ? '<span><i class="sw chair"></i>Loose chair (no number)</span>' : '';
-    if (ev && ev.type === 'exam') {
-      legend.innerHTML = `<span><i class="sw"></i>Available</span><span><i class="sw marked"></i>Marked</span><span><i class="sw mine"></i>Your seat</span><span><i class="sw exit"></i>Exit</span>${loose}`;
-    } else {
-      legend.innerHTML = `<span class="legend-note">${ev ? 'Seat marking is available for exams only.' : 'Choose an exam to mark your seat.'}</span><span><i class="sw exit"></i>Exit</span>${loose}`;
+  function renderFoot() {
+    const foot = $('room-foot'), ev = currentEvent();
+    const legend = [];
+    if (ev && ev.type === 'exam') legend.push('<span><i class="sw"></i>Available</span>', '<span><i class="sw marked"></i>Marked</span>', '<span><i class="sw mine"></i>Yours</span>');
+    if (hasLoose) legend.push('<span><i class="sw loose"></i>Loose chair, no number</span>');
+    let html = '';
+    if (ev) {
+      const marked = Store.bookmarks.has(ev.id);
+      const bits = [dateLong(ev.date), `${timeLabel(ev.start)} – ${timeLabel(ev.end)}`];
+      if (ev.professor) bits.push(`Prof. ${ev.professor}`);
+      if (ev.type === 'exam') bits.push(`${Object.keys(state.bookings).length} of ${room.capacity} seats marked`);
+      html += `<div class="foot-event"><strong>${esc(ev.title)}</strong><span>${bits.map(esc).join(' · ')}${ev.note ? `<br>${esc(ev.note)}` : ''}</span></div>`;
+      html += `<button type="button" class="bookmark-btn" data-bookmark="${esc(ev.id)}" aria-pressed="${marked}">${flag}<span>${marked ? 'In My events' : 'Add to My events'}</span></button>`;
     }
+    if (legend.length) html += `<div class="legend" aria-label="Seat key">${legend.join('')}</div>`;
+    foot.innerHTML = html;
+    foot.hidden = !html;
   }
-  function renderInfo() {
-    const el = $('event-info'), ev = currentEvent();
-    if (!ev) { el.textContent = ''; return; }
-    const bits = ev.type === 'exam'
-      ? [`${Object.keys(state.bookings).length} of ${room.capacity} seats marked`]
-      : ['Seat marking is available for exams only'];
-    if (ev.note) bits.push(ev.note);
-    el.textContent = bits.join(' · ');
+  function renderAll() { renderStrip(); renderFoot(); renderHall(); refit(); }
+
+  function toggleBookmark(id) {
+    const ev = state.events.find(e => String(e.id) === String(id));
+    if (!ev) return;
+    try {
+      const now = Store.bookmarks.toggle(ev);
+      notify(now ? 'Added to My events on this device.' : 'Removed from My events.');
+    } catch (error) { console.error(error); notify(error.message || 'Could not save the bookmark.'); }
+    renderStrip(); renderFoot();
   }
-  function renderAll() { renderHeader(); renderStrip(); renderLegend(); renderInfo(); renderHall(); refit(); }
 
   function defaultEvent(events) {
     const wanted = params.get('event');
@@ -268,32 +289,47 @@
     if (state.eventId) p.set('event', state.eventId);
     try { history.replaceState(null, '', `${location.pathname}?${p}`); } catch { /* ignore */ }
   }
-  async function loadEvents() { state.events = (await Store.listEvents(room.id)).sort((a, b) => when(a).localeCompare(when(b))); }
+  async function loadEvents() {
+    state.events = (await Store.listEvents(room.id)).sort((a, b) => when(a).localeCompare(when(b)));
+    try { Store.bookmarks.sync(room.id, state.events); } catch (error) { console.error(error); }
+  }
   async function loadBookings() { const ev = currentEvent(); state.bookings = ev && ev.type === 'exam' ? await Store.listBookings(ev.id) : {}; }
-  async function refreshBookings() { await loadBookings(); renderInfo(); renderHall(); refit(); }
+  async function refreshBookings() { await loadBookings(); renderFoot(); renderHall(); refit(); }
   async function selectEvent(id) {
     state.eventId = id ? String(id) : null;
+    const picked = currentEvent();
+    if (picked) state.date = picked.date;
     try { await loadBookings(); } catch (error) { console.error(error); state.bookings = {}; notify('Could not load seat marks for this exam.'); }
     syncUrl();
     renderAll();
   }
 
+  $('date-strip').addEventListener('click', e => {
+    const pill = e.target.closest('[data-date]');
+    if (!pill || pill.dataset.date === state.date) return;
+    const first = state.events.find(x => x.date === pill.dataset.date);
+    if (first) selectEvent(first.id);
+  });
   $('event-strip').addEventListener('click', e => {
+    const mark = e.target.closest('[data-bookmark]');
+    if (mark) { toggleBookmark(mark.dataset.bookmark); return; }
     const chip = e.target.closest('[data-event]');
     if (chip && chip.dataset.event !== String(state.eventId)) selectEvent(chip.dataset.event);
   });
-  $('event-strip').addEventListener('scroll', updateArrows);
-  $('strip-left').addEventListener('click', () => $('event-strip').scrollBy({ left: -260, behavior: 'smooth' }));
-  $('strip-right').addEventListener('click', () => $('event-strip').scrollBy({ left: 260, behavior: 'smooth' }));
+  $('room-foot').addEventListener('click', e => { const mark = e.target.closest('[data-bookmark]'); if (mark) toggleBookmark(mark.dataset.bookmark); });
+  $('date-strip').addEventListener('scroll', updateArrows);
+  $('strip-left').addEventListener('click', () => $('date-strip').scrollBy({ left: -240, behavior: 'smooth' }));
+  $('strip-right').addEventListener('click', () => $('date-strip').scrollBy({ left: 240, behavior: 'smooth' }));
+
   // ---------- exam seat marking ----------
   const seatDialog = $('seat-dialog');
   let seatToMark = null;
+  seatDialog.querySelector('[data-close]').addEventListener('click', () => seatDialog.close());
   $('hall').addEventListener('click', e => {
     const btn = e.target.closest('.seat');
     if (!btn || btn.disabled) return;
     const ev = currentEvent();
-    if (!ev) { notify(state.events.length ? 'Choose an exam to mark your seat.' : 'Add an exam to mark your seat.'); return; }
-    if (ev.type !== 'exam') { notify('Seat marking is available for exams only.'); return; }
+    if (!ev || ev.type !== 'exam') return;   // seats are only markable for exams; for other events the map is view-only
     seatToMark = btn.dataset.seat;
     $('seat-no').textContent = seatToMark;
     $('seat-event').textContent = `${ev.title} · ${dateLong(ev.date)} · ${timeLabel(ev.start)} – ${timeLabel(ev.end)}`;
@@ -307,7 +343,7 @@
     const name = $('seat-name').value.trim();
     if (!name) { notify('Enter your name or initials.'); return; }
     const ev = currentEvent();
-    if (!ev || ev.type !== 'exam') { seatDialog.close(); notify('Seat marking is available for exams only.'); return; }
+    if (!ev || ev.type !== 'exam') { seatDialog.close(); return; }
     try {
       const result = await Store.book(state.eventId, seatToMark, name);
       seatDialog.close();
@@ -319,18 +355,33 @@
   });
 
   Store.subscribe(async change => {
+    if (change.type === 'bookmarks') { renderStrip(); renderFoot(); return; }
     if (change.type === 'events' && (!change.roomId || change.roomId === room.id)) {
       await loadEvents();
       if (state.eventId && !state.events.some(x => String(x.id) === String(state.eventId))) state.eventId = null;
-      renderHeader(); renderStrip(); renderLegend();
+      renderStrip();
       await refreshBookings();
     } else if (change.type === 'bookings' && currentEvent()?.type === 'exam' && (!change.eventId || String(change.eventId) === String(state.eventId))) {
       await refreshBookings();
     }
   });
 
+  // ---------- "+ Event" button: shown only to people who may add events right now ----------
+  // The admin chooses who that is (only admin, co-admins, or anyone). Visitors who cannot add never see the button.
+  async function showAddButton() {
+    try {
+      const response = await fetch('/api/admin/session', { credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' } });
+      if (!response.ok) return;
+      const session = await response.json();
+      $('add-event').hidden = !session.canAdd;
+    } catch { /* no admin API here (for example a plain local server): keep the button hidden */ }
+  }
+
   // ---------- start ----------
   (async function start() {
+    showAddButton();
+    if (room.layout) wireZoom(); else $('zoom-tools').hidden = true;
+    if (!room.layout) $('map-scroll').outerHTML = `<div class="pending"><h2>${esc(room.name)}</h2><p>The seating map for this classroom isn't available yet.</p></div>`;
     const status = await Store.init();
     if (status.error) notify(status.error);
     try { await loadEvents(); } catch (error) { console.error(error); state.events = []; notify('Could not load events.'); }

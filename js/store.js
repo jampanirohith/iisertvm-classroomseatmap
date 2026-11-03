@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  const K = { events: 'lhc-events-v4', bookings: 'lhc-bookings-v4', mine: 'lhc-my-seats-v4' };
+  const K = { events: 'lhc-events-v4', bookings: 'lhc-bookings-v4', mine: 'lhc-my-seats-v4', bookmarks: 'lhc-bookmarks-v1' };
   const read = (key, fallback) => { try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch { return fallback; } };
   const write = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch (error) { throw new Error('Browser storage is unavailable or full. Free some space and try again.'); } };
   const bookingKey = (eventId, seatId) => `${eventId}::${seatId}`;
@@ -8,7 +8,7 @@
   const fromRow = row => ({
     id: row.id, roomId: row.room_id, title: row.title, type: row.event_type || 'other',
     date: row.event_date, start: String(row.start_time).slice(0, 5), end: String(row.end_time).slice(0, 5),
-    professor: row.professor || '', note: row.description || ''
+    professor: row.professor || '', note: row.description || '', createdBy: row.created_by || ''
   });
 
   let client = null;
@@ -26,7 +26,39 @@
     });
   }
 
+
+  // ---------- bookmarks: saved on this device only ----------
+  // A bookmark keeps a small copy of the event so "My events" can show it right away; the copy is
+  // refreshed (or dropped, if the event was deleted) whenever the classroom's events are loaded.
+  const snapshot = e => ({ id: String(e.id), roomId: e.roomId, title: e.title, type: e.type, date: e.date, start: e.start, end: e.end, professor: e.professor || '', note: e.note || '' });
+  const saved = () => { const list = read(K.bookmarks, []); return Array.isArray(list) ? list.filter(b => b && b.id && b.roomId) : []; };
+  const Bookmarks = {
+    list() { return saved().sort(byWhen); },
+    has(eventId) { return saved().some(b => b.id === String(eventId)); },
+    // Returns true when the event is now bookmarked, false when the bookmark was removed.
+    toggle(event) {
+      const list = saved(), id = String(event.id);
+      const next = list.some(b => b.id === id) ? list.filter(b => b.id !== id) : [...list, snapshot(event)];
+      write(K.bookmarks, next);
+      return next.some(b => b.id === id);
+    },
+    remove(eventId) { write(K.bookmarks, saved().filter(b => b.id !== String(eventId))); },
+    // Call with the full, freshly loaded event list of one classroom.
+    sync(roomId, events) {
+      const fresh = new Map(events.map(e => [String(e.id), e]));
+      const list = saved(), next = [];
+      list.forEach(b => {
+        if (b.roomId !== roomId) { next.push(b); return; }
+        const current = fresh.get(b.id);
+        if (current) next.push(snapshot(current));
+      });
+      if (JSON.stringify(next) !== JSON.stringify(list)) write(K.bookmarks, next);
+    }
+  };
+  window.addEventListener('storage', event => { if (event.key === K.bookmarks) emit({ type: 'bookmarks' }); });
+
   const Store = {
+    bookmarks: Bookmarks,
     // Returns { shared, error }. Without a Supabase configuration everything is kept in this browser.
     async init() {
       try { if (window.SUPABASE_CONFIG_READY) await window.SUPABASE_CONFIG_READY; } catch { /* fallback to local mode */ }
@@ -96,20 +128,6 @@
       all[roomId] = [...(all[roomId] || []), ...added].sort(byWhen);
       write(K.events, all);
       return added.sort(byWhen);
-    },
-
-    // Events can only be removed from the browser that created them in single-device mode.
-    canDelete(event) { return !client && String(event.id).startsWith('local-'); },
-
-    async deleteEvent(event) {
-      const all = read(K.events, {});
-      all[event.roomId] = (all[event.roomId] || []).filter(x => String(x.id) !== String(event.id));
-      write(K.events, all);
-      const prefix = `${event.id}::`;
-      const bookings = read(K.bookings, {});
-      Object.keys(bookings).filter(k => k.startsWith(prefix)).forEach(k => delete bookings[k]);
-      write(K.bookings, bookings);
-      write(K.mine, read(K.mine, []).filter(k => !k.startsWith(prefix)));
     },
 
     // Returns { [seatId]: { name, mine } } for one event.

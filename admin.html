@@ -3,117 +3,187 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
   <title>Admin - IISER TVM Lecture Hall Complex</title>
   <link rel="stylesheet" href="css/styles.css">
-  <script src="js/theme.js"></script>
 </head>
 <body>
-  <main class="shell narrow admin-shell">
-    <header class="admin-header">
+  <main class="shell admin-shell">
+    <header class="admin-top">
       <div>
-        <p class="eyebrow">IISER TVM · LHC</p>
-        <h1>Admin</h1>
+        <h1>Events</h1>
+        <p id="who-line">Lecture Hall Complex</p>
       </div>
-      <button type="button" class="theme-toggle" data-theme-toggle aria-label="Switch to dark mode"></button>
+      <button type="button" class="btn quiet admin-hidden" id="admin-logout">Sign out</button>
     </header>
 
     <section class="admin-panel" id="login-panel">
-      <h2>Admin sign in</h2>
-      <p class="panel-intro">Sign in to create or remove classroom events. This page does not store your password.</p>
-      <form class="admin-form" id="login-form">
-        <label class="field" for="admin-password">Admin password
+      <h2>Sign in</h2>
+      <p class="panel-intro" id="login-intro">Sign in to add or remove classroom events.</p>
+      <div class="segmented" role="group" aria-label="Sign in as">
+        <button type="button" data-role="admin" aria-pressed="true">Admin</button>
+        <button type="button" data-role="coadmin" aria-pressed="false">Co-admin</button>
+      </div>
+      <form id="login-form">
+        <label class="field" id="email-field" hidden>Email
+          <input id="admin-email" type="email" autocomplete="username" maxlength="254">
+        </label>
+        <label class="field">Password
           <input id="admin-password" type="password" autocomplete="current-password" required maxlength="1024">
         </label>
         <button class="btn primary" type="submit">Sign in</button>
       </form>
       <p class="admin-message" id="login-message" role="status" aria-live="polite"></p>
-      <a class="back" href="index.html">&larr; Back to classrooms</a>
+      <button type="button" class="btn" id="guest-continue" hidden>Add an event without signing in</button>
+      <p style="margin-top:16px"><a class="back" href="index.html">&larr; Back to classrooms</a></p>
     </section>
 
     <div id="admin-console" class="admin-hidden">
-      <section class="admin-panel">
+      <nav class="admin-tabs" role="tablist" aria-label="Admin sections">
+        <button type="button" role="tab" id="tab-schedule" aria-selected="true">Schedule</button>
+        <button type="button" role="tab" id="tab-settings" aria-selected="false" hidden>Settings</button>
+      </nav>
+
+      <section id="panel-schedule" aria-labelledby="tab-schedule">
         <div class="admin-toolbar">
-          <label class="field" for="admin-room">Classroom
-            <select id="admin-room"></select>
-          </label>
-          <button type="button" class="admin-logout" id="admin-logout">Sign out</button>
+          <label class="visually-hidden" for="admin-room">Classroom</label>
+          <select id="admin-room"></select>
+          <span class="spacer"></span>
+          <button type="button" class="btn primary" id="add-btn">+ Add event</button>
         </div>
-        <h2>Add event</h2>
-        <p class="panel-intro">Classes, exams and other activities appear in the selected classroom's event strip. Seat marking is available only for exams.</p>
-        <form class="admin-form" id="admin-event-form">
-          <label class="field" for="event-title">Event name
-            <input id="event-title" maxlength="80" required>
-          </label>
-          <label class="field" for="event-type">Type
-            <select id="event-type">
-              <option value="class">Class</option>
-              <option value="exam">Exam</option>
-              <option value="other">Other</option>
-            </select>
-          </label>
-          <label class="field" id="professor-field" for="event-professor">Professor (optional)
-            <input id="event-professor" maxlength="80" placeholder="Name, if known">
-          </label>
-          <label class="field" for="event-date">Date
-            <input id="event-date" type="date" required>
-          </label>
-          <section class="admin-repeat" id="class-repeat-panel" aria-label="Class repetition options">
-            <label class="admin-repeat-toggle" for="event-repeat">
-              <input id="event-repeat" type="checkbox">
-              <span><strong>Repeat this class</strong><small>Each occurrence will appear as a separate session.</small></span>
-            </label>
-            <div class="admin-repeat-settings" id="repeat-settings" hidden>
-              <label class="field" for="event-repeat-mode">Repeat pattern
-                <select id="event-repeat-mode">
-                  <option value="weekly">Every week (same weekday)</option>
-                  <option value="days">Choose weekdays</option>
-                </select>
-              </label>
-              <fieldset class="field" id="repeat-days-wrap" hidden>
-                <legend>Repeat on</legend>
-                <div class="admin-weekdays">
-                  <label><input type="checkbox" name="repeat-day" value="1"><span>Mon</span></label>
-                  <label><input type="checkbox" name="repeat-day" value="2"><span>Tue</span></label>
-                  <label><input type="checkbox" name="repeat-day" value="3"><span>Wed</span></label>
-                  <label><input type="checkbox" name="repeat-day" value="4"><span>Thu</span></label>
-                  <label><input type="checkbox" name="repeat-day" value="5"><span>Fri</span></label>
-                  <label><input type="checkbox" name="repeat-day" value="6"><span>Sat</span></label>
-                  <label><input type="checkbox" name="repeat-day" value="7"><span>Sun</span></label>
-                </div>
-              </fieldset>
-              <label class="field" for="event-repeat-until">Repeat until (inclusive)
-                <input id="event-repeat-until" type="date">
-              </label>
-              <p class="admin-message" id="repeat-summary" aria-live="polite">Weekly sessions will be created through the selected date.</p>
-            </div>
-          </section>
-          <div class="field-row">
-            <label class="field" for="event-start">Starts
-              <input id="event-start" type="time" required>
-            </label>
-            <label class="field" for="event-end">Ends
-              <input id="event-end" type="time" required>
-            </label>
-          </div>
-          <label class="field" for="event-note">Note (optional)
-            <textarea id="event-note" rows="2" maxlength="200"></textarea>
-          </label>
-          <button class="btn primary" type="submit">Save event</button>
-        </form>
+        <div id="calendar"></div>
+        <div class="cal-legend"><span><i class="type-dot"></i>Class</span><span><i class="type-dot" data-type="exam"></i>Exam</span><span><i class="type-dot" data-type="other"></i>Other</span></div>
         <p class="admin-message" id="manager-message" role="status" aria-live="polite"></p>
       </section>
 
-      <section class="admin-panel">
-        <h2>Events in this classroom</h2>
-        <p class="panel-intro">Deleting an event also removes its exam seat marks.</p>
-        <ul class="admin-event-list" id="admin-event-list"></ul>
-        <p class="admin-message" id="list-message" role="status" aria-live="polite"></p>
+      <section id="panel-settings" aria-labelledby="tab-settings" hidden>
+        <div class="admin-panel">
+          <h2>Who can add events</h2>
+          <p class="panel-intro">Applies to every classroom. The admin can edit or delete any event; co-admins can edit and delete the events they added.</p>
+          <div class="option-list" id="mode-options">
+            <label class="option"><input type="radio" name="mode" value="admin"><span><strong>Only the admin</strong><small>Nobody else can add events.</small></span></label>
+            <label class="option"><input type="radio" name="mode" value="coadmin"><span><strong>Admin and co-admins</strong><small>Co-admins sign in with the email and password you give them.</small></span></label>
+            <label class="option"><input type="radio" name="mode" value="anyone"><span><strong>Anyone</strong><small>Anyone can add events without signing in.</small></span></label>
+          </div>
+          <p class="admin-message" id="mode-message" role="status" aria-live="polite"></p>
+        </div>
+        <div class="admin-panel">
+          <h2>Co-admins</h2>
+          <p class="panel-intro">Give each co-admin an email and a password. They sign in from the Co-admin tab.</p>
+          <form id="coadmin-form">
+            <div class="field-row stack">
+              <label class="field">Email<input id="coadmin-email" type="email" autocomplete="off" maxlength="254" required></label>
+              <label class="field">Password<input id="coadmin-password" type="text" autocomplete="off" minlength="8" maxlength="128" required placeholder="At least 8 characters"></label>
+            </div>
+            <button class="btn primary" type="submit">Add co-admin</button>
+          </form>
+          <p class="admin-message" id="coadmin-message" role="status" aria-live="polite"></p>
+          <ul class="coadmin-list" id="coadmin-list"></ul>
+        </div>
       </section>
-      <p class="small" style="margin-top:18px"><a class="back" href="index.html">&larr; Back to classrooms</a></p>
     </div>
   </main>
+
+  <dialog id="event-dialog">
+    <form id="admin-event-form">
+      <h2 id="event-dialog-title">Add event</h2>
+      <p class="muted small" id="event-room-line"></p>
+      <label class="field" for="event-title">Event name
+        <input id="event-title" maxlength="80" required>
+      </label>
+      <div class="field-row">
+        <label class="field" for="event-type">Type
+          <select id="event-type">
+            <option value="class">Class</option>
+            <option value="exam">Exam</option>
+            <option value="other">Other</option>
+          </select>
+        </label>
+        <label class="field" for="event-date">Date
+          <input id="event-date" type="date" required>
+        </label>
+      </div>
+      <div class="field-row">
+        <label class="field" for="event-start">Starts
+          <input id="event-start" type="time" required>
+        </label>
+        <label class="field" for="event-end">Ends
+          <input id="event-end" type="time" required>
+        </label>
+      </div>
+      <label class="field" id="professor-field" for="event-professor">Professor (optional)
+        <input id="event-professor" maxlength="80" placeholder="Name, if known">
+      </label>
+      <section class="admin-repeat" id="class-repeat-panel" aria-label="Class repetition options">
+        <label class="admin-repeat-toggle" for="event-repeat">
+          <input id="event-repeat" type="checkbox">
+          <span><strong>Repeat this class</strong><small>Each occurrence appears as a separate session.</small></span>
+        </label>
+        <div id="repeat-settings" hidden>
+          <label class="field" for="event-repeat-mode">Repeat pattern
+            <select id="event-repeat-mode">
+              <option value="weekly">Every week (same weekday)</option>
+              <option value="days">Choose weekdays</option>
+            </select>
+          </label>
+          <fieldset class="field" id="repeat-days-wrap" hidden>
+            <legend>Repeat on</legend>
+            <div class="admin-weekdays">
+              <label><input type="checkbox" name="repeat-day" value="1"><span>Mon</span></label>
+              <label><input type="checkbox" name="repeat-day" value="2"><span>Tue</span></label>
+              <label><input type="checkbox" name="repeat-day" value="3"><span>Wed</span></label>
+              <label><input type="checkbox" name="repeat-day" value="4"><span>Thu</span></label>
+              <label><input type="checkbox" name="repeat-day" value="5"><span>Fri</span></label>
+              <label><input type="checkbox" name="repeat-day" value="6"><span>Sat</span></label>
+              <label><input type="checkbox" name="repeat-day" value="7"><span>Sun</span></label>
+            </div>
+          </fieldset>
+          <label class="field" for="event-repeat-until">Repeat until (inclusive)
+            <input id="event-repeat-until" type="date">
+          </label>
+          <p class="admin-message" id="repeat-summary" aria-live="polite"></p>
+        </div>
+      </section>
+      <label class="field" for="event-note">Note (optional)
+        <textarea id="event-note" rows="2" maxlength="200"></textarea>
+      </label>
+      <p class="admin-message" id="form-message" role="status" aria-live="polite"></p>
+      <div class="dialog-actions">
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn primary" id="event-save">Save event</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="detail-dialog" class="event-detail">
+    <h2 id="detail-title"></h2>
+    <dl id="detail-body"></dl>
+    <p class="admin-message" id="detail-message" role="status" aria-live="polite"></p>
+    <div class="dialog-actions">
+      <button type="button" class="btn danger" id="detail-delete" hidden>Delete</button>
+      <button type="button" class="btn" id="detail-edit" hidden>Edit</button>
+      <a class="btn" id="detail-open" href="room.html">Open classroom</a>
+      <button type="button" class="btn primary" data-close>Close</button>
+    </div>
+  </dialog>
+
+  <dialog id="password-dialog">
+    <form id="password-form">
+      <h2>Reset password</h2>
+      <p class="muted small" id="password-who"></p>
+      <label class="field">New password<input id="password-new" type="text" autocomplete="off" minlength="8" maxlength="128" required></label>
+      <p class="muted small">Their current sessions will be signed out.</p>
+      <div class="dialog-actions">
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn primary">Save password</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="js/format.js"></script>
   <script src="js/data.js"></script>
   <script src="js/recurrence.js"></script>
+  <script src="js/week-calendar.js"></script>
   <script src="js/admin.js"></script>
 </body>
 </html>

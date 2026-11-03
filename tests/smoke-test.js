@@ -9,7 +9,7 @@ const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
 const plain = v => JSON.parse(JSON.stringify(v));   // values from the vm sandbox have a different Array prototype
 
 // Every script parses.
-for (const f of ['js/data.js', 'js/store.js', 'js/room.js', 'js/home.js', 'js/map.js', 'js/theme.js', 'js/recurrence.js', 'supabase/config.js']) new vm.Script(read(f), { filename: f });
+for (const f of ['js/data.js', 'js/store.js', 'js/room.js', 'js/home.js', 'js/map.js', 'js/format.js', 'js/admin.js', 'js/week-calendar.js', 'js/recurrence.js', 'supabase/config.js']) new vm.Script(read(f), { filename: f });
 
 // Classrooms.
 const sandbox = { window: {} };
@@ -100,7 +100,7 @@ for (const [id, seatOneOn, door] of [['lhc-jupiter', 'left', 'left'], ['lhc-venu
 // Database files agree with the classrooms.
 const seed = read('supabase/seed.sql'), schema = read('supabase/schema.sql');
 for (const room of rooms) assert.ok(seed.includes(`('${room.id}', '${room.name}', 'Lecture Hall Complex', ${room.capacity})`), `seed row for ${room.id}`);
-for (const table of ['rooms', 'events', 'seat_marks']) assert.ok(schema.includes(`create table if not exists public.${table}`), `schema creates ${table}`);
+for (const table of ['rooms', 'events', 'seat_marks', 'app_settings', 'coadmins']) assert.ok(schema.includes(`create table if not exists public.${table}`), `schema creates ${table}`);
 
 // Pages: every local link and script exists, and no leftover wording.
 const pages = ['index.html', 'room.html', 'interactive-map.html', 'admin.html'];
@@ -115,7 +115,7 @@ for (const page of pages) {
 const mapHtml = read('interactive-map.html');
 for (const room of rooms) assert.ok(mapHtml.includes(`room.html?room=${room.id}`), `map links to ${room.id}`);
 const banned = /\b(provisional|demo|prototype|reconstruct\w*)\b/i;
-for (const f of [...pages, 'css/styles.css', 'js/data.js', 'js/store.js', 'js/room.js', 'js/home.js', 'js/map.js', 'js/theme.js', 'js/recurrence.js', 'README.md', 'supabase/schema.sql', 'supabase/seed.sql']) {
+for (const f of [...pages, 'css/styles.css', 'js/data.js', 'js/store.js', 'js/room.js', 'js/home.js', 'js/map.js', 'js/format.js', 'js/admin.js', 'js/week-calendar.js', 'js/recurrence.js', 'README.md', 'supabase/schema.sql', 'supabase/seed.sql']) {
   assert.ok(!banned.test(read(f)), `${f}: no leftover working-draft wording`);
 }
 // Recurrence uses calendar-safe ISO dates and supports weekly / selected weekdays.
@@ -132,14 +132,17 @@ const roomPage = read('room.html');
 const roomScript = read('js/room.js');
 assert.ok(read('functions/api/admin/events.js').includes('event.start_time < previous.end_time && event.end_time > previous.start_time'), 'server-side event overlap validation');
 assert.ok(roomScript.includes("if (!ev || ev.type !== 'exam')"), 'seat marking is limited to exam events');
-assert.ok(roomScript.includes('Seat marking is available for exams only'), 'class events explain why seats cannot be marked');
 assert.ok(!roomScript.includes('Enter the professor for a class'), 'professor name is optional for classes');
 assert.ok(read('admin.html').includes('Professor (optional)'), 'professor field is labeled optional in the admin form');
-assert.ok(roomPage.includes('Mark your seat') && roomPage.includes('Mark my seat'), 'exam seat UI uses marking language');
+assert.ok(roomPage.includes('Mark my seat'), 'exam seat UI uses marking language');
 assert.ok(!roomPage.includes('Book seat'), 'seat dialog does not use booking language');
-assert.ok(read('css/styles.css').includes('--bg: #080808'), 'dark mode uses neutral black');
+const css = read('css/styles.css');
+assert.ok(css.includes('@media (prefers-color-scheme: dark)') && css.includes('color-scheme: light dark'), 'the theme follows the device setting');
+for (const page of pages) assert.ok(!/theme-toggle|data-theme|js\/theme\.js/.test(read(page)), `${page}: no manual light/dark switch`);
+assert.ok(!fs.existsSync(path.join(root, 'js/theme.js')), 'theme.js is gone');
+assert.ok(/@media \(max-width: 759px\)[\s\S]*\.room-list \{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/.test(css), 'phones show two classrooms per row');
 for (const id of ['event-repeat', 'event-repeat-mode', 'event-repeat-until', 'repeat-days-wrap']) assert.ok(read('admin.html').includes(`id="${id}"`), `admin recurrence control ${id}`);
-for (const script of ['js/theme.js', 'js/recurrence.js']) assert.ok(fs.existsSync(path.join(root, script)), `${script} exists`);
+for (const script of ['js/format.js', 'js/recurrence.js', 'js/week-calendar.js']) assert.ok(fs.existsSync(path.join(root, script)), `${script} exists`);
 console.log('PASS: classrooms, layouts, database files, pages, theme wiring and recurrence dates');
 
 
@@ -183,10 +186,48 @@ const eventFn = read('functions/api/admin/events.js');
 const authFn = read('functions/_shared/admin-auth.js');
 assert.ok(loginFn.includes('env.ADMIN_PASSWORD'), 'admin password is read from the server environment');
 assert.ok(authFn.includes('HttpOnly') && authFn.includes('SameSite=Strict'), 'admin session cookie uses protective attributes');
-assert.ok(eventFn.includes('env.SUPABASE_SECRET_KEY'), 'privileged database key is only read in server function code');
-assert.ok(eventFn.includes('isAdmin(request, env)'), 'admin event APIs require a valid admin session');
+assert.ok(authFn.includes('env.SUPABASE_SECRET_KEY') && !eventFn.includes('SUPABASE_SECRET_KEY:'), 'privileged database key is only read in server function code');
+assert.ok(eventFn.includes('getActor(request, env)') && eventFn.includes('canModify'), 'event writes check who is signed in and what they may change');
 assert.ok(!read('supabase/schema.sql').includes('create policy "events public insert"'), 'browser clients cannot create events through RLS');
 assert.ok(read('supabase/schema.sql').includes('revoke insert, update, delete on table public.events'), 'direct browser event writes are revoked');
 assert.ok(read('js/room.js').includes('admin.html?room='), 'classroom event-strip link opens the admin page for that room');
-assert.ok(read('css/styles.css').includes('grid-template-columns: repeat(3, minmax(0, 1fr))'), 'mobile homepage grid has 3 columns for two rows of rooms');
-console.log('PASS: Cloudflare runtime config, admin session security, admin-only event writes and mobile room grid');
+console.log('PASS: Cloudflare runtime config, admin session security and permission-checked event writes');
+
+// Bookmarks are saved on the device, refresh from the latest events, and drop deleted events.
+(async () => {
+  const values = new Map();
+  const localStorage = { getItem: k => (values.has(k) ? values.get(k) : null), setItem: (k, v) => values.set(k, String(v)), removeItem: k => values.delete(k) };
+  const ctx = { window: { addEventListener() {} }, localStorage, console };
+  vm.runInNewContext(read('js/store.js'), ctx);
+  const { bookmarks } = ctx.window.LHC_STORE;
+  const ev = (id, extra = {}) => ({ id, roomId: 'lhc-kaumudi', title: `Event ${id}`, type: 'class', date: '2026-11-05', start: '10:00', end: '11:00', professor: '', note: '', ...extra });
+  assert.equal(bookmarks.toggle(ev('a')), true);
+  assert.equal(bookmarks.toggle(ev('b', { type: 'exam', date: '2026-11-03' })), true);
+  assert.equal(bookmarks.has('a'), true);
+  assert.deepEqual(Array.from(bookmarks.list(), x => x.id), ['b', 'a'], 'sorted by date and time');
+  assert.equal(bookmarks.toggle(ev('a')), false, 'toggling again removes it');
+  bookmarks.toggle(ev('a'));
+  bookmarks.sync('lhc-kaumudi', [ev('a', { start: '12:00', end: '13:00', title: 'Moved' })]);
+  assert.deepEqual(Array.from(bookmarks.list(), x => [x.id, x.title, x.start]), [['a', 'Moved', '12:00']], 'copies refresh; deleted events disappear');
+  bookmarks.toggle(ev('z', { roomId: 'lhc-venus' }));
+  bookmarks.sync('lhc-kaumudi', []);
+  assert.deepEqual(Array.from(bookmarks.list(), x => x.id), ['z'], 'syncing one room leaves other rooms alone');
+  bookmarks.remove('z');
+  assert.equal(bookmarks.list().length, 0);
+  console.log('PASS: bookmarks save on the device, refresh from live events and drop deleted ones');
+})().catch(error => { console.error(error); process.exitCode = 1; });
+
+// Page structure: events column, add-event visibility, calendar and admin settings.
+{
+  const roomJs = read('js/room.js'), adminHtml = read('admin.html'), adminJs = read('js/admin.js'), homeJs = read('js/home.js');
+  assert.ok(read('room.html').includes('id="date-strip"') && roomJs.includes("data-date="), 'room page picks one date at a time');
+  assert.ok(roomJs.includes("state.events.filter(e => e.date === state.date)"), 'only the selected date\'s events are listed');
+  assert.ok(roomJs.includes('/api/admin/session') && roomJs.includes('session.canAdd'), 'the + Event button follows who may add events');
+  assert.ok(roomJs.includes("const whole = Math.min(availW / w, availH / h)"), 'phones start with the whole classroom in view');
+  assert.ok(roomJs.includes('touchmove') && roomJs.includes('ctrlKey'), 'pinch and ctrl-scroll zoom');
+  assert.ok(homeJs.includes('Classes') && homeJs.includes('Exams') && homeJs.includes('data-class-date'), 'My events: classes by date, exams listed');
+  for (const id of ['mode-options', 'coadmin-form', 'coadmin-list', 'detail-edit', 'calendar', 'guest-continue']) assert.ok(adminHtml.includes(`id="${id}"`), `admin page has ${id}`);
+  for (const value of ['admin', 'coadmin', 'anyone']) assert.ok(adminHtml.includes(`name="mode" value="${value}"`), `settings offer the ${value} option`);
+  assert.ok(adminJs.includes("method: 'PATCH'") && read('js/week-calendar.js').includes('onMove'), 'events can be edited and dragged to reschedule');
+  console.log('PASS: page structure — date column, add-event visibility, calendar, settings');
+}

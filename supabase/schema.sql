@@ -40,6 +40,8 @@ create table if not exists public.seat_marks (
 alter table public.events add column if not exists event_type text not null default 'other';
 alter table public.events add column if not exists professor text;
 alter table public.events add column if not exists description text;
+-- 'admin', a co-admin's email, or 'public' (when anyone may add events). Co-admins can delete only their own events.
+alter table public.events add column if not exists created_by text;
 
 alter table public.rooms enable row level security;
 alter table public.events enable row level security;
@@ -75,3 +77,47 @@ begin
     alter publication supabase_realtime add table public.events;
   end if;
 end $$;
+
+-- Seat marks are for exams only. The browser already enforces this; the database now does too.
+create or replace function public.seat_marks_guard() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if not exists (select 1 from public.events e where e.id = new.event_id and e.event_type = 'exam') then
+    raise exception 'Seats can only be marked for exams' using errcode = '22023';
+  end if;
+  new.display_name := left(btrim(new.display_name), 30);
+  return new;
+end $$;
+drop trigger if exists seat_marks_guard on public.seat_marks;
+create trigger seat_marks_guard before insert on public.seat_marks for each row execute function public.seat_marks_guard();
+
+-- Two events in the same classroom can never overlap, even if two people save at the same moment.
+-- Back-to-back events (10:00-11:00 and 11:00-12:00) are allowed. Skipped with a notice if old data already overlaps.
+create extension if not exists btree_gist;
+do $$
+begin
+  alter table public.events add constraint events_no_overlap_per_room
+    exclude using gist (room_id with =, tsrange(event_date + start_time, event_date + end_time, '[)') with &&);
+exception
+  when duplicate_object then null;
+  when others then raise notice 'events_no_overlap_per_room was not added: %', sqlerrm;
+end $$;
+
+-- Admin settings and co-admin accounts. Only the Cloudflare admin functions (secret key) can touch these:
+-- no policies and no grants for the browser roles.
+-- key 'who_can_add' holds 'admin' (default), 'coadmin' or 'anyone'.
+create table if not exists public.app_settings (
+  key text primary key,
+  value text not null,
+  updated_at timestamptz not null default now()
+);
+create table if not exists public.coadmins (
+  id uuid primary key default gen_random_uuid(),
+  email text not null unique check (email = lower(email)),
+  password_hash text not null,
+  created_at timestamptz not null default now()
+);
+alter table public.app_settings enable row level security;
+alter table public.coadmins enable row level security;
+revoke all on table public.app_settings from public, anon, authenticated;
+revoke all on table public.coadmins from public, anon, authenticated;

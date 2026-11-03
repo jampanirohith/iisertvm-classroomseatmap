@@ -1,2 +1,6 @@
-1. Users can add a event to bookmark(add a bookmark symbol beside the event in the event bar) when bookmarked, those specific events willbe displayed in the homepage under my events
-2. 
+
+
+Future:
+1. Events can be group like for a class: think about this
+2. co-admins can choose the already specified classes like mat 321 etc. and the users can specify their courses when using for the first time so that they can see there specific classes schedule
+2. Shareable room and event links: Make sure a link can open the exact classroom and selected event, so students can share an exam seat-selection page directly with classmates.
