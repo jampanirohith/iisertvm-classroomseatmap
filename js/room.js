@@ -210,7 +210,7 @@
       const r = box.getBoundingClientRect();
       zoomAt(state.scale * Math.exp(-e.deltaY / 300), e.clientX - r.left, e.clientY - r.top);
     }, { passive: false });
-    window.addEventListener('resize', () => { refit(); updateArrows(); });
+    window.addEventListener('resize', () => { refit(); });
     window.addEventListener('orientationchange', () => setTimeout(refit, 250));
     // The map area changes height when the event bar or footer changes; keep the whole classroom in view.
     if ('ResizeObserver' in window) new ResizeObserver(() => { if (!state.manualZoom) refit(); }).observe(box);
@@ -218,34 +218,52 @@
 
   // ---------- event strip and footer ----------
   // The event column shows one date at a time: pick a date, then choose among that day's events.
-  const eventDates = () => [...new Set(state.events.map(e => e.date))];
-  function updateArrows() {
-    const strip = $('date-strip');
-    const list = eventDates(), at = list.indexOf(state.date);
-    $('strip-left').hidden = at <= 0;
-    $('strip-right').hidden = at < 0 || at >= list.length - 1;
-  }
+  const addDays = (iso, n) => { const d = parseDate(iso); d.setDate(d.getDate() + n); return LHC_FMT.isoOf(d); };
+  const dayLabel = iso => { const d = parseDate(iso); return d ? `${d.getDate()} ${part(d, { month: 'short' })}` : iso; };
+  const calIcon = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>';
+  let calMonth = null;
   function renderStrip() {
-    const bar = $('event-bar'), dates = $('date-strip'), strip = $('event-strip');
-    bar.hidden = !state.events.length;
-    if (!state.events.length) return;
-    if (!state.date || !eventDates().includes(state.date)) state.date = (currentEvent() || state.events[0]).date;
-    const today = todayISO();
-    dates.innerHTML = eventDates().map(date => {
-      const d = parseDate(date), selected = date === state.date;
-      const label = date === today ? 'Today' : d ? part(d, { weekday: 'short' }) : '';
-      return `<button type="button" class="date-pill${selected ? ' selected' : ''}" data-date="${esc(date)}" aria-pressed="${selected}" aria-label="${esc(dateLong(date))}"><span>${esc(label)}</span><b>${esc(d ? `${d.getDate()} ${part(d, { month: 'short' })}` : date)}</b></button>`;
+    const dates = $('date-strip'), strip = $('event-strip');
+    $('event-bar').hidden = false;
+    if (!state.date) state.date = (currentEvent() || state.events[0] || { date: todayISO() }).date;
+    // Yesterday, the chosen day and tomorrow, shown as real dates. Click the middle one for the calendar.
+    dates.innerHTML = [-1, 0, 1].map(n => {
+      const date = addDays(state.date, n), d = parseDate(date), mid = n === 0;
+      return `<button type="button" class="date-pill${mid ? ' selected' : ''}" data-date="${esc(date)}" data-mid="${mid}" aria-label="${esc(dateLong(date))}${mid ? ', open calendar' : ''}" ${mid ? 'aria-haspopup="dialog" aria-expanded="' + !$('pk-pop').hidden + '"' : ''}><span>${esc(d ? part(d, { weekday: 'short' }) : '')}</span><b>${esc(dayLabel(date))}${mid ? calIcon : ''}</b></button>`;
     }).join('');
+    if (!$('pk-pop').hidden) renderCal();
     strip.innerHTML = state.events.filter(e => e.date === state.date).map(e => {
       const selected = String(e.id) === String(state.eventId);
       const type = typeOf(e.type);
       const marked = Store.bookmarks.has(e.id);
       return `<div class="chip-wrap"><button type="button" class="chip${selected ? ' selected' : ''}" data-event="${esc(e.id)}" data-type="${type}" title="${esc(e.title)} · ${esc(TYPE[type])}" aria-label="${esc(e.title)}, ${esc(TYPE[type])}, ${esc(dateLong(e.date))}, ${esc(timeLabel(e.start))}" aria-pressed="${selected}"><span class="chip-time">${esc(timeLabel(e.start))}</span><span class="chip-sub">${esc(e.title)}</span></button><button type="button" class="chip-mark" data-bookmark="${esc(e.id)}" aria-pressed="${marked}" aria-label="${marked ? 'Remove bookmark from' : 'Bookmark'} ${esc(e.title)}" title="${marked ? 'Remove from My events' : 'Add to My events'}">${flag}</button></div>`;
-    }).join('');
-    const sel = dates.querySelector('.date-pill.selected');
-    // The chosen date sits at the left edge, just after the back arrow; the arrows step one date at a time.
-    if (sel) dates.scrollLeft += sel.getBoundingClientRect().left - dates.getBoundingClientRect().left - 40;
-    updateArrows();
+    }).join('') || '<div class="no-events">No classes or events on this day</div>';
+  }
+
+  function renderCal() {
+    const pop = $('pk-pop'), base = parseDate(calMonth || state.date) || new Date();
+    const y = base.getFullYear(), m = base.getMonth(), first = new Date(y, m, 1, 12), lead = (first.getDay() + 6) % 7;
+    const days = new Date(y, m + 1, 0).getDate(), withEvents = new Set(state.events.map(e => e.date)), today = todayISO();
+    const cells = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(w => `<i class="pk-dow">${w}</i>`);
+    for (let i = 0; i < lead; i++) cells.push('<i></i>');
+    for (let day = 1; day <= days; day++) {
+      const iso = `${y}-${pad(m + 1)}-${pad(day)}`;
+      cells.push(`<button type="button" class="pk-day${iso === state.date ? ' on' : ''}${iso === today ? ' today' : ''}${withEvents.has(iso) ? ' has' : ''}" data-pick="${iso}" aria-label="${esc(dateLong(iso))}">${day}</button>`);
+    }
+    pop.innerHTML = `<div class="pk-head"><button type="button" data-month="-1" aria-label="Previous month">‹</button><b>${esc(part(first, { month: 'long' }))} ${y}</b><button type="button" data-month="1" aria-label="Next month">›</button></div><div class="pk-grid">${cells.join('')}</div><button type="button" class="pk-today" data-pick="${today}">Today</button>`;
+  }
+  function toggleCal(open) {
+    const pop = $('pk-pop');
+    pop.hidden = open === undefined ? !pop.hidden : !open;
+    if (!pop.hidden) { calMonth = state.date; renderCal(); }
+    renderStrip();
+  }
+  async function goDate(iso) {
+    if (!parseDate(iso)) return;
+    const first = state.events.find(x => x.date === iso);
+    if (first) { state.date = iso; await selectEvent(first.id); return; }
+    state.date = iso; state.eventId = null; state.bookings = {};
+    syncUrl(); renderAll();
   }
   function renderFoot() {
     const foot = $('room-foot'), ev = currentEvent();
@@ -307,10 +325,16 @@
 
   $('date-strip').addEventListener('click', e => {
     const pill = e.target.closest('[data-date]');
-    if (!pill || pill.dataset.date === state.date) return;
-    const first = state.events.find(x => x.date === pill.dataset.date);
-    if (first) selectEvent(first.id);
+    if (!pill) return;
+    if (pill.dataset.mid === 'true') toggleCal(); else { $('pk-pop').hidden = true; goDate(pill.dataset.date); }
   });
+  $('pk-pop').addEventListener('click', e => {
+    const month = e.target.closest('[data-month]'), pick = e.target.closest('[data-pick]');
+    if (month) { const d = parseDate(calMonth); d.setDate(1); d.setMonth(d.getMonth() + Number(month.dataset.month)); calMonth = LHC_FMT.isoOf(d); renderCal(); }
+    if (pick) { $('pk-pop').hidden = true; goDate(pick.dataset.pick); }
+  });
+  document.addEventListener('click', e => { if (!$('pk-pop').hidden && e.target.isConnected && !e.target.closest('.date-nav')) toggleCal(false); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('pk-pop').hidden) toggleCal(false); });
   $('event-strip').addEventListener('click', e => {
     const mark = e.target.closest('[data-bookmark]');
     if (mark) { toggleBookmark(mark.dataset.bookmark); return; }
@@ -318,13 +342,8 @@
     if (chip && chip.dataset.event !== String(state.eventId)) selectEvent(chip.dataset.event);
   });
   $('room-foot').addEventListener('click', e => { const mark = e.target.closest('[data-bookmark]'); if (mark) toggleBookmark(mark.dataset.bookmark); });
-  function stepDate(by) {
-    const list = eventDates(), next = list[list.indexOf(state.date) + by];
-    const first = next && state.events.find(x => x.date === next);
-    if (first) selectEvent(first.id);
-  }
-  $('strip-left').addEventListener('click', () => stepDate(-1));
-  $('strip-right').addEventListener('click', () => stepDate(1));
+  $('strip-left').addEventListener('click', () => goDate(addDays(state.date, -1)));
+  $('strip-right').addEventListener('click', () => goDate(addDays(state.date, 1)));
 
   // ---------- exam seat marking ----------
   const seatDialog = $('seat-dialog');
