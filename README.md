@@ -6,10 +6,10 @@ Open a classroom to see its seating arrangement, browse its events by date, book
 
 | Page | What it does |
 | --- | --- |
-| `index.html` | Top menu (Classrooms, Interactive map, Admin), the classroom list and **My events** |
+| `index.html` | Search, the classroom list, **My events** and footer links (Interactive map, Admin) |
 | `room.html?room=lhc-kaumudi` | Seat map, one-date-at-a-time event column, bookmarks, exam seat marking |
 | `manifest.webmanifest`, `sw.js`, `icons/`, `js/pwa.js` | Install-as-app files (Chrome's own install prompt) |
-| `icons/icon-*.png` | Logo: diamond classroom with seats; used as header, tab, install and home-screen icon (`icon.svg` is the source) |
+| `icons/icon-*.png` | Logo: diamond classroom with seats; used as tab, install and home-screen icon (`icon.svg` is the source) |
 | `js/room.js` | Classroom page (phones: pull-up dates and events bar) |
 | `js/cheer.js`, `icons/cheer-cat.png` | "All the best" popup (dancing kitten) for a bookmarked exam from 15 minutes before it starts |
 | `interactive-map.html` | Interactive map of the Lecture Hall Complex (map in the printed floor plan colours) |

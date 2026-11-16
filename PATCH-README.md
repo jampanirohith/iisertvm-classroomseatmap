@@ -12,15 +12,15 @@ Supabase SQL (run in the SQL editor, only when you want them):
 - supabase/exams.sql: replaces the mid-sem and end-sem exam events (19-26 Sep and 18 Nov - 1 Dec) with plain course-code titles. Run it after schedule.sql.
 
 What changed
-- Plain, flat look; simple top menu; plain seat map.
+- Plain, flat look; plain seat map; no header bar (links to Interactive map and Admin sit in a plain-text footer).
 - Home: search for classes and exams; today's count per classroom.
 - Phones: month + day-tile strip for dates; seat map opens at a readable size (fit button shows the whole room).
 - Install as an app (Chrome's default install prompt) and offline fallback pages.
 - Bookmarked exam opened 15 minutes before it starts: "All the best!" popup with the dancing kitten (transparent background).
-- Phones: Add to My events no longer falls below the screen; header reformatted (icon + tab menu); date and events area more compact.
+- Phones: Add to My events no longer falls below the screen; date and events area more compact.
 - Home hides past events by default (Show past button); exams show your marked seat in lists, the classroom footer and the popup.
 - "Floor plan" is now "Interactive map"; the map uses the colours of the printed floor plan while the rest of the page follows the device theme.
-- New logo (diamond classroom with seats) for the header, browser tab and installed app.
+- New logo (diamond classroom with seats) for the browser tab and installed app.
 - Phones: pull-up dates/events bar (swipe or tap) to see the whole classroom; events row redesigned.
 - Dark mode: pure black with a light glass touch.
 - Full event names everywhere (no cut-off text).

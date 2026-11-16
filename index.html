@@ -12,18 +12,9 @@
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="stylesheet" href="css/styles.css">
 </head>
-<body>
-  <header class="site-bar">
-    <div class="site-bar-inner">
-      <a class="brand" href="index.html"><img class="brand-icon" src="icons/icon-192.png" alt="" width="36" height="36"><span class="brand-text"><b>Lecture Hall Complex</b><small>IISER Thiruvananthapuram</small></span></a>
-      <nav class="site-nav" aria-label="Main">
-        <a href="index.html" aria-current="page">Classrooms</a>
-        <a href="interactive-map.html">Interactive map</a>
-        <a href="admin.html">Admin</a>
-      </nav>
-    </div>
-  </header>
+<body class="has-foot">
   <main class="shell">
+    <h1 class="visually-hidden">Lecture Hall Complex, IISER Thiruvananthapuram</h1>
     <section class="search" aria-label="Search classes and exams">
       <label class="visually-hidden" for="search-input">Search classes and exams</label>
       <div class="search-box">
@@ -49,6 +40,7 @@
       <section class="my-events" id="my-events" aria-labelledby="my-title"></section>
     </div>
   </main>
+  <footer class="site-foot"><nav aria-label="More pages"><a href="interactive-map.html">Interactive map</a> <span aria-hidden="true">·</span> <a href="admin.html">Admin</a></nav></footer>
   <script src="supabase/config.js"></script>
   <script src="js/format.js"></script>
   <script src="js/data.js"></script>

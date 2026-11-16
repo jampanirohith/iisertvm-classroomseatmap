@@ -157,7 +157,8 @@ assert.ok(!/backdrop-filter|blur\(/.test(flatCss), 'no glass / blur effects outs
 assert.ok((flatCss.match(/gradient\(/g) || []).length === 1 && /\.cal-col \{[^}]*linear-gradient/.test(flatCss), 'no gradients except the calendar hour lines');
 assert.ok(/--bg: #000000/.test(css), 'dark mode page is pure black');
 assert.ok(!/(^|[^-])serif|box-shadow/.test(css.replace(/sans-serif/g, "")), 'no serif headings or drop shadows');
-for (const page of ['index.html', 'interactive-map.html', 'admin.html']) assert.ok(read(page).includes('class="site-bar"'), `${page} has the simple top menu`);
+for (const page of ['index.html', 'interactive-map.html', 'admin.html']) { const h = read(page); assert.ok(!h.includes('site-bar') && h.includes('class="site-foot"'), `${page} has no header bar, only the plain footer links`); }
+assert.ok(/class="site-foot"><nav[^>]*><a href="interactive-map.html">Interactive map<\/a>[\s\S]*<a href="admin.html">Admin<\/a>/.test(read('index.html')), 'home footer lists Interactive map and Admin');
 assert.ok(/id="room-list"/.test(read('index.html')) && /\.menu \{/.test(css), 'home page lists classrooms as a plain menu');
 // Every class the admin calendar writes into the page must be styled (a rename once broke the grid).
 {
@@ -304,7 +305,6 @@ console.log('PASS: Cloudflare runtime config, admin session security and permiss
   const css = read('css/styles.css');
   assert.ok(/body\.room-page \{[^}]*min-height: 0;[^}]*height: 100dvh;/.test(css), 'classroom page is one screen tall, so the Add to My events button stays visible');
   assert.ok(/\.room-foot \{[^}]*env\(safe-area-inset-bottom\)/.test(css), 'footer keeps clear of the phone gesture bar');
-  for (const page of ['index.html', 'admin.html', 'interactive-map.html']) assert.ok(read(page).includes('class="brand-icon"'), `${page} header shows the app icon`);
   assert.ok(fs.existsSync(path.join(root, 'icons/cheer-cat.png')) && read('js/cheer.js').includes("icons/cheer-cat.png"), 'popup uses the cat picture');
   console.log('PASS: phone layout guards');
 }

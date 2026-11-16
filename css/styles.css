@@ -50,18 +50,13 @@ button { cursor: pointer; }
 .back:hover { color: var(--ink); text-decoration: underline; }
 .lede { margin-top: 6px; color: var(--muted); }
 
-/* ---------- site bar (home, floor plan, admin) ---------- */
-.site-bar { border-bottom: 1px solid var(--line); background: var(--surface); }
-.site-bar-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; max-width: 960px; margin: 0 auto; padding: 12px 18px; }
-.brand { display: flex; align-items: center; gap: 10px; min-width: 0; text-decoration: none; }
-.brand-icon { flex: 0 0 auto; width: 36px; height: 36px; border-radius: 8px; }
-.brand-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
-.brand b { font-size: 17px; font-weight: 650; }
-.brand small { color: var(--muted); font-size: 12px; }
-.site-nav { display: flex; gap: 4px; }
-.site-nav a { padding: 7px 12px; border-radius: 6px; color: var(--muted); font-size: 15px; font-weight: 500; text-decoration: none; }
-.site-nav a:hover { background: var(--soft); color: var(--ink); }
-.site-nav a[aria-current="page"] { background: var(--accent-soft); color: var(--accent); }
+/* ---------- page footer (home, interactive map, admin): plain text links ---------- */
+body.has-foot { display: flex; flex-direction: column; }
+body.has-foot > main { flex: 1 0 auto; width: 100%; }
+.site-foot { flex: 0 0 auto; padding: 8px 18px 28px; color: var(--muted); font-size: 14px; text-align: center; }
+.site-foot a { color: var(--muted); text-decoration: none; }
+.site-foot a:hover, .site-foot a:focus-visible { color: var(--ink); text-decoration: underline; }
+.site-foot nav { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 10px; }
 
 /* ---------- buttons, fields, dialogs ---------- */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); font-size: 14px; font-weight: 500; text-decoration: none; }
@@ -368,7 +363,7 @@ body.room-page #toast { bottom: 140px; }
 /* Dark mode only: pure black page, a faint blue glow at the top, and frosted headers and cards. */
 @media (prefers-color-scheme: dark) {
   body { background-color: #000; background-image: radial-gradient(900px 380px at 50% -120px, rgba(96, 140, 255, .16), transparent 70%); background-repeat: no-repeat; }
-  .site-bar, .topbar, .event-bar { background: rgba(12, 12, 16, .72); border-color: rgba(255, 255, 255, .08); -webkit-backdrop-filter: blur(18px) saturate(150%); backdrop-filter: blur(18px) saturate(150%); }
+  .topbar, .event-bar { background: rgba(12, 12, 16, .72); border-color: rgba(255, 255, 255, .08); -webkit-backdrop-filter: blur(18px) saturate(150%); backdrop-filter: blur(18px) saturate(150%); }
   .menu, .my-item, .search-box, .room-foot, .zoom-tools, .chip, .date-pill, .strip-arrow, .btn, .bookmark-btn, .add-btn { background: rgba(255, 255, 255, .045); border-color: rgba(255, 255, 255, .11); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
   .room-foot { background: rgba(12, 12, 16, .72); border-top-color: rgba(255, 255, 255, .08); -webkit-backdrop-filter: blur(18px) saturate(150%); backdrop-filter: blur(18px) saturate(150%); }
   .chip.selected, .date-pill.selected, .btn.primary, .bookmark-btn[aria-pressed="true"] { background: var(--accent-soft); border-color: var(--accent); }
@@ -388,13 +383,6 @@ body.room-page #toast { bottom: 140px; }
   .shell { padding: 20px 14px 44px; }
   .my-events { margin-top: 28px; }
   .my-open { min-height: 56px; }
-  .site-bar-inner { flex-wrap: wrap; gap: 8px; padding: 10px 14px 0; }
-  .brand-icon { width: 34px; height: 34px; }
-  .brand b { font-size: 16px; }
-  .site-nav { width: calc(100% + 28px); margin: 0 -14px; gap: 0; border-top: 1px solid var(--line); }
-  .site-nav a { flex: 1; padding: 11px 6px 9px; border-bottom: 3px solid transparent; border-radius: 0; text-align: center; font-size: 14px; }
-  .site-nav a:hover { background: transparent; }
-  .site-nav a[aria-current="page"] { background: transparent; border-bottom-color: var(--accent); font-weight: 600; }
   .topbar h1 { font-size: 17px; }
   .topbar-inner { padding: 6px 10px; }
   .back-btn { width: 36px; height: 36px; }
