@@ -21,14 +21,31 @@
     </div>
   </header>
   <main class="shell">
-    <section aria-labelledby="rooms-title">
-      <div class="home-head">
-        <h1 id="rooms-title">Classrooms</h1>
-        <p class="lede">Choose a classroom to see its seats, schedule and exam seating.</p>
+    <section class="search" aria-label="Search classes and exams">
+      <label class="visually-hidden" for="search-input">Search classes and exams</label>
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+        <input id="search-input" type="search" placeholder="Search classes and exams" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+        <button type="button" id="search-clear" aria-label="Clear search" hidden>&times;</button>
       </div>
-      <ul class="menu" id="room-list"></ul>
+      <p class="search-hint" id="search-hint">Try a course code (PHY 212), a hall (Kaumudi), a teacher, or a date (25 Nov, today).</p>
+      <div class="filters" id="search-filters" role="group" aria-label="Show" hidden>
+        <button type="button" data-filter="all" aria-pressed="true">All</button>
+        <button type="button" data-filter="class" aria-pressed="false">Classes</button>
+        <button type="button" data-filter="exam" aria-pressed="false">Exams</button>
+      </div>
+      <div id="search-results" aria-live="polite"></div>
     </section>
-    <section class="my-events" id="my-events" aria-labelledby="my-title"></section>
+
+    <div id="home-sections">
+      <section aria-labelledby="rooms-title">
+        <h1 class="section-title" id="rooms-title">Classrooms</h1>
+        <ul class="menu" id="room-list"></ul>
+      </section>
+      <section class="home-block" id="coming-up" aria-labelledby="coming-title" hidden></section>
+      <section class="home-block" id="next-exams" aria-labelledby="exams-title" hidden></section>
+      <section class="my-events" id="my-events" aria-labelledby="my-title"></section>
+    </div>
   </main>
   <script src="supabase/config.js"></script>
   <script src="js/format.js"></script>

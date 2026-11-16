@@ -35,7 +35,7 @@
       <button type="button" data-zoom="fit" aria-label="Fit whole classroom" title="Fit whole classroom">${zoomIcon('M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5')}</button>
     </div>`;
 
-  const state = { events: [], eventId: null, date: null, bookings: {}, scale: 1, manualZoom: false };
+  const state = { events: [], eventId: null, date: null, bookings: {}, scale: 1, manualZoom: false, showWhole: false, lastScale: 0 };
   const currentEvent = () => state.events.find(e => String(e.id) === String(state.eventId)) || null;
   const hasLoose = Boolean(room.layout && (room.layout.looseChairs || room.layout.rows.some(r => r.tail && r.tail.kind === 'platform')));
 
@@ -142,8 +142,8 @@
 
   function renderHall() { if (room.layout) { $('hall').innerHTML = hallHtml(); applyScale(); } }
 
-  // ---------- zoom: the whole classroom is in view by default ----------
-  const MIN_SCALE = 0.2, MAX_SCALE = 3;
+  // ---------- zoom: whole room on larger screens; a readable size on phones (the fit button shows the whole room) ----------
+  const MIN_SCALE = 0.2, MAX_SCALE = 3, PHONE_READABLE = 0.85;
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   const isPhone = () => Boolean(window.matchMedia && window.matchMedia('(max-width: 759px)').matches);
 
@@ -162,14 +162,21 @@
     const availH = box.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom);
     if (!w || !h || availW <= 0 || availH <= 0) return 1;
     const whole = Math.min(availW / w, availH / h);
-    return isPhone() ? clamp(whole, MIN_SCALE, 1.4) : clamp(whole, 0.75, 1.3);
+    if (!isPhone()) return clamp(whole, 0.75, 1.3);
+    return state.showWhole ? clamp(whole, MIN_SCALE, 1.4) : clamp(Math.max(whole, PHONE_READABLE), MIN_SCALE, 1.4);
   }
   function refit() {
     if (!room.layout) return;
+    const box = $('map-scroll');
     if (!state.manualZoom) {
       state.scale = fitScale();
       applyScale();
-      const box = $('map-scroll'); box.scrollLeft = 0; box.scrollTop = 0;
+      // Only move the view when the scale changed, so marking a seat does not jump the map back.
+      if (Math.abs(state.scale - state.lastScale) > 0.001) {
+        state.lastScale = state.scale;
+        box.scrollTop = 0;
+        box.scrollLeft = isPhone() ? Math.max(0, (box.scrollWidth - box.clientWidth) / 2) : 0;
+      }
     } else applyScale();
   }
   // Zoom around a point (cx, cy are relative to the map area) so the content under the fingers stays put.
@@ -188,7 +195,14 @@
     $('zoom-tools').addEventListener('click', e => {
       const btn = e.target.closest('[data-zoom]');
       if (!btn) return;
-      if (btn.dataset.zoom === 'fit') { state.manualZoom = false; refit(); return; }
+      if (btn.dataset.zoom === 'fit') {
+        // On phones this switches between a readable size and the whole classroom.
+        state.showWhole = state.manualZoom ? false : !state.showWhole;
+        state.manualZoom = false; state.lastScale = 0; refit();
+        const label = state.showWhole ? 'Readable size' : 'Fit whole classroom';
+        btn.title = label; btn.setAttribute('aria-label', label);
+        return;
+      }
       zoomAt(state.scale * (btn.dataset.zoom === 'in' ? 1.25 : 1 / 1.25), box.clientWidth / 2, box.clientHeight / 2);
     });
     // Pinch with two fingers on a touch screen, or Ctrl + scroll wheel on a computer.
@@ -222,6 +236,21 @@
   const dayLabel = iso => { const d = parseDate(iso); return d ? `${d.getDate()} ${part(d, { month: 'short' })}` : iso; };
   const calIcon = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>';
   let calMonth = null;
+  // Phones: a row of day tiles (a dot marks days with events) instead of the three-date control.
+  const DAY_SPAN = 30;
+  function renderDays() {
+    const strip = $('day-strip'), today = todayISO(), withEvents = new Set(state.events.map(e => e.date)), base = parseDate(state.date);
+    $('month-label').textContent = base ? `${part(base, { month: 'long' })} ${base.getFullYear()}` : '';
+    $('month-btn').setAttribute('aria-expanded', String(!$('pk-pop').hidden));
+    let html = '';
+    for (let n = -DAY_SPAN; n <= DAY_SPAN; n++) {
+      const date = addDays(state.date, n), d = parseDate(date), on = n === 0;
+      html += `<button type="button" class="day-tile${on ? ' selected' : ''}${date === today ? ' today' : ''}${withEvents.has(date) ? ' has' : ''}" data-day="${date}" aria-pressed="${on}" aria-label="${esc(dateLong(date))}"><span>${esc(part(d, { weekday: 'short' }))}</span><b>${d.getDate()}</b></button>`;
+    }
+    strip.innerHTML = html;
+    const sel = strip.querySelector('.selected');
+    if (sel && strip.clientWidth) strip.scrollLeft = sel.offsetLeft - (strip.clientWidth - sel.offsetWidth) / 2;
+  }
   function renderStrip() {
     const dates = $('date-strip'), strip = $('event-strip');
     $('event-bar').hidden = false;
@@ -231,7 +260,8 @@
       const date = addDays(state.date, n), d = parseDate(date), mid = n === 0;
       return `<button type="button" class="date-pill${mid ? ' selected' : ''}" data-date="${esc(date)}" data-mid="${mid}" aria-label="${esc(dateLong(date))}${mid ? ', open calendar' : ''}" ${mid ? 'aria-haspopup="dialog" aria-expanded="' + !$('pk-pop').hidden + '"' : ''}><span>${esc(d ? part(d, { weekday: 'short' }) : '')}</span><b>${esc(dayLabel(date))}${mid ? calIcon : ''}</b></button>`;
     }).join('');
-    $('date-today').hidden = state.date === todayISO();
+    $('date-today').hidden = $('day-today').hidden = state.date === todayISO();
+    renderDays();
     if (!$('pk-pop').hidden) renderCal();
     strip.innerHTML = state.events.filter(e => e.date === state.date).map(e => {
       const selected = String(e.id) === String(state.eventId);
@@ -334,7 +364,7 @@
     if (month) { const d = parseDate(calMonth); d.setDate(1); d.setMonth(d.getMonth() + Number(month.dataset.month)); calMonth = LHC_FMT.isoOf(d); renderCal(); }
     if (pick) { $('pk-pop').hidden = true; goDate(pick.dataset.pick); }
   });
-  document.addEventListener('click', e => { if (!$('pk-pop').hidden && e.target.isConnected && !e.target.closest('.date-nav')) toggleCal(false); });
+  document.addEventListener('click', e => { if (!$('pk-pop').hidden && e.target.isConnected && !e.target.closest('.date-nav, .day-bar, .pk-pop')) toggleCal(false); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('pk-pop').hidden) toggleCal(false); });
   $('event-strip').addEventListener('click', e => {
     const mark = e.target.closest('[data-bookmark]');
@@ -343,6 +373,12 @@
     if (chip && chip.dataset.event !== String(state.eventId)) selectEvent(chip.dataset.event);
   });
   $('room-foot').addEventListener('click', e => { const mark = e.target.closest('[data-bookmark]'); if (mark) toggleBookmark(mark.dataset.bookmark); });
+  $('day-strip').addEventListener('click', e => {
+    const tile = e.target.closest('[data-day]');
+    if (tile) { $('pk-pop').hidden = true; goDate(tile.dataset.day); }
+  });
+  $('month-btn').addEventListener('click', () => toggleCal());
+  $('day-today').addEventListener('click', () => { $('pk-pop').hidden = true; goDate(todayISO()); });
   $('date-today').addEventListener('click', () => { $('pk-pop').hidden = true; goDate(todayISO()); });
   $('strip-left').addEventListener('click', () => goDate(addDays(state.date, -1)));
   $('strip-right').addEventListener('click', () => goDate(addDays(state.date, 1)));

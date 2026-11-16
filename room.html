@@ -34,8 +34,15 @@
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
         </button>
         <button type="button" class="today-btn" id="date-today" hidden>Today</button>
-        <div class="pk-pop" id="pk-pop" role="dialog" aria-label="Calendar" hidden></div>
       </div>
+      <div class="day-bar" id="day-bar">
+        <div class="day-head">
+          <button type="button" class="month-btn" id="month-btn" aria-haspopup="dialog" aria-expanded="false"><span id="month-label"></span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+          <button type="button" class="today-btn" id="day-today" hidden>Today</button>
+        </div>
+        <div class="day-strip" id="day-strip" aria-label="Pick a day"></div>
+      </div>
+      <div class="pk-pop" id="pk-pop" role="dialog" aria-label="Calendar" hidden></div>
       <div class="event-strip" id="event-strip" aria-label="Events on the selected date"></div>
     </div>
   </div>

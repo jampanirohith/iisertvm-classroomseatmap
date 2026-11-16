@@ -9,8 +9,11 @@ Delete these old files from the repo if they are still there:
 
 Supabase SQL (run in the SQL editor, only when you want them):
 - supabase/schedule.sql: replaces ALL events with the Varsha 2026 class timetable (27 Jul to 17 Nov).
-- supabase/exams-midsem.sql: adds the mid-sem exam halls (19-26 Sep). Run it after schedule.sql.
+- supabase/exams.sql: replaces the mid-sem and end-sem exam events (19-26 Sep and 18 Nov - 1 Dec) with plain course-code titles. Run it after schedule.sql.
 
 What changed
-- Plain, flat look; simple top menu; plain seat map; one-row date bar on phones.
+- Plain, flat look; simple top menu; plain seat map.
+- Home: search for classes and exams, Coming up, Upcoming exams, today's count per classroom.
+- Phones: month + day-tile strip for dates; seat map opens at a readable size (fit button shows the whole room).
+- Full event names everywhere (no cut-off text).
 - Admin weekly calendar styling repaired; adding an event that clashes now lists the clash and lets the admin replace it.

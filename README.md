@@ -13,10 +13,11 @@ Open a classroom to see its seating arrangement, browse its events by date, book
 
 ## For students
 
-- **Date bar.** Left of the events: yesterday, the chosen day and tomorrow as real dates, with arrows. Tap the middle date for a calendar (dots mark days with events). On phones it is one row: back arrow, the date, forward arrow and Today. The events for that day are listed beside it, or below it on phones.
+- **Date bar.** Left of the events: yesterday, the chosen day and tomorrow as real dates, with arrows. Tap the middle date for a calendar (dots mark days with events). On phones the date bar is a month name (tap for the calendar) above a scrolling strip of day tiles, with Today. The events for that day are listed beside it, or below it on phones. Event names are shown in full.
 - **Bookmarks.** Tap the bookmark on an event, or **Add to My events** under the map. Bookmarks are saved on that device only (browser storage), so they are private and do not follow you to another phone.
 - **My events** (homepage) has two columns: **Classes**, shown one date at a time (pick the date), and **Exams**, all in one list. Anything else you bookmark appears under **Other**.
-- **Seat map.** The whole classroom is in view when the page opens, including on phones. Pinch (or Ctrl + scroll) to zoom, drag to move around, and use the fit button to return to the whole room.
+- **Home search.** Search classes and exams by course code (with or without a space), hall, teacher or date ("25 Nov", today, tomorrow), with All/Classes/Exams filters. Without a search the home page shows the classrooms (with today's count), Coming up, Upcoming exams and My events.
+- **Seat map.** On computers the whole classroom is in view when the page opens. On phones it opens at a readable size and centred; the fit button switches between the whole room and the readable size. Pinch (or Ctrl + scroll) to zoom and drag to move around.
 - **Exams only:** tap a free seat to mark it with your name. Classes and other events are view-only.
 - **Look.** Plain and flat: solid colours, thin borders, the device's own font. It follows the device's light or dark setting; there is no theme button.
 

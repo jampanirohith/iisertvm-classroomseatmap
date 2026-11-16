@@ -6,7 +6,7 @@
   const roomName = id => (rooms.find(r => r.id === id) || {}).name || 'Classroom';
 
   const list = document.getElementById('room-list');
-  list.innerHTML = rooms.map(room => `<li><a class="room-link" href="room.html?room=${encodeURIComponent(room.id)}"><span class="room-name">${esc(room.name)}</span><span class="room-cap">${room.capacity} seats</span></a></li>`).join('');
+  list.innerHTML = rooms.map(room => `<li><a class="room-link" href="room.html?room=${encodeURIComponent(room.id)}"><span class="room-text"><span class="room-name">${esc(room.name)}</span><span class="room-cap">${room.capacity} seats<span class="room-today" data-today-room="${esc(room.id)}"></span></span></span></a></li>`).join('');
 
   // ---------- My events: bookmarks saved on this device ----------
   // Classes are shown one date at a time (pick a date); exams are listed all together.
@@ -77,16 +77,120 @@
 
   renderMyEvents();
 
-  // Refresh the saved copies from the latest events (times may have changed, or an event may have been deleted).
-  (async function refresh() {
-    const ids = [...new Set(Store.bookmarks.list().map(b => b.roomId))];
-    if (!ids.length) return;
-    try { await Store.init(); } catch (error) { console.error(error); return; }
-    for (const id of ids) {
-      try { Store.bookmarks.sync(id, await Store.listEvents(id)); } catch (error) { console.error(error); }
-    }
-    renderMyEvents();
-  })();
+  // ---------- Events from every hall: search, Coming up, Upcoming exams, today counts ----------
+  const $ = id => document.getElementById(id);
+  const { isoOf, TYPE } = window.LHC_FMT;
+  const enc = encodeURIComponent;
+  const addDays = (iso, n) => { const d = parseDate(iso); d.setDate(d.getDate() + n); return isoOf(d); };
+  const norm = value => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+  const PAGE = 30;
+  let all = [], loaded = false, failed = false, filter = 'all', browse = false, query = '', shown = PAGE, timer = 0;
 
-  Store.subscribe(change => { if (change.type === 'bookmarks') renderMyEvents(); });
+  // One lowercase string per event with the words people search by: course, hall, teacher, type, weekday, date, time.
+  function hay(e) {
+    if (e._h) return e._h;
+    const d = parseDate(e.date);
+    const when = d ? `${part(d, { weekday: 'long' })} ${part(d, { weekday: 'short' })} ${d.getDate()} ${part(d, { month: 'long' })} ${part(d, { month: 'short' })} ${e.date}` : e.date;
+    return (e._h = norm(`${e.title} ${e.professor} ${roomName(e.roomId)} ${TYPE[typeOf(e.type)]} ${when} ${timeLabel(e.start)}`));
+  }
+  function matches(e, tokens) {
+    const t = today();
+    return tokens.every(raw => {
+      if (raw === 'today') return e.date === t;
+      if (raw === 'tomorrow') return e.date === addDays(t, 1);
+      if (raw === 'yesterday') return e.date === addDays(t, -1);
+      const token = norm(raw);
+      return !token || hay(e).includes(token);
+    });
+  }
+  const isUpcoming = e => `${e.date}T${e.end}` >= nowStamp();
+  const upcomingFirst = list => {
+    const up = list.filter(isUpcoming).sort(byWhen), past = list.filter(e => !isUpcoming(e)).sort((a, b) => byWhen(b, a));
+    return up.concat(past);
+  };
+  function byWhen(a, b) { return `${a.date}T${a.start}`.localeCompare(`${b.date}T${b.start}`); }
+
+  function resultRow(e) {
+    const d = parseDate(e.date);
+    const meta = [d ? part(d, { weekday: 'short' }) : '', roomName(e.roomId), `${timeLabel(e.start)} – ${timeLabel(e.end)}`, e.professor ? `Prof. ${e.professor}` : ''].filter(Boolean);
+    return `<li class="my-item${isUpcoming(e) ? '' : ' past'}" data-type="${typeOf(e.type)}">
+      <a class="my-open" href="room.html?room=${enc(e.roomId)}&event=${enc(e.id)}" aria-label="${esc(e.title)}, ${esc(meta.join(', '))}, ${esc(dateLong(e.date))}">
+        <span class="my-date"><b>${esc(d ? d.getDate() : '')}</b><span>${esc(d ? part(d, { month: 'short' }) : '')}</span></span>
+        <span class="my-text"><span class="my-title">${esc(e.title)}</span><span class="my-meta">${esc(meta.join(' · '))}</span></span>
+      </a>
+    </li>`;
+  }
+
+  function renderSearch() {
+    const active = Boolean(query.trim()) || browse;
+    $('home-sections').hidden = active;
+    $('search-hint').hidden = active;
+    $('search-filters').hidden = !active;
+    $('search-clear').hidden = !active;
+    const box = $('search-results');
+    if (!active) { box.innerHTML = ''; return; }
+    if (failed) { box.innerHTML = '<p class="my-empty">Could not load events. Check your connection and try again.</p>'; return; }
+    if (!loaded) { box.innerHTML = '<p class="my-empty">Loading events…</p>'; return; }
+    const tokens = query.trim().split(/\s+/).filter(Boolean);
+    const found = upcomingFirst(all.filter(e => (filter === 'all' || typeOf(e.type) === filter) && matches(e, tokens)));
+    if (!found.length) { box.innerHTML = '<p class="my-empty">No matches. Try a course code like PHY 212, a hall name, or a date like 25 Nov.</p>'; return; }
+    const page = found.slice(0, shown);
+    box.innerHTML = `<p class="result-count">${found.length} ${found.length === 1 ? 'result' : 'results'}</p><ul class="my-list result-list">${page.map(resultRow).join('')}</ul>${found.length > shown ? `<button type="button" class="btn more-btn" id="search-more">Show more (${found.length - shown})</button>` : ''}`;
+  }
+
+  function renderHomeSections() {
+    const t = today();
+    document.querySelectorAll('[data-today-room]').forEach(el => {
+      const n = loaded ? all.filter(e => e.roomId === el.dataset.todayRoom && e.date === t).length : -1;
+      el.textContent = n < 0 ? '' : n ? ` · ${n} today` : ' · nothing today';
+    });
+    const block = (el, id, title, events, seeAll) => {
+      el.hidden = !events.length;
+      if (!events.length) { el.innerHTML = ''; return; }
+      el.innerHTML = `<h2 class="section-title" id="${id}">${title}</h2><ul class="my-list result-list">${events.map(resultRow).join('')}</ul>${seeAll ? `<button type="button" class="btn quiet see-all" data-see="${seeAll}">See all ${seeAll === 'exam' ? 'exams' : 'classes'}</button>` : ''}`;
+    };
+    const upcoming = all.filter(isUpcoming).sort(byWhen);
+    block($('coming-up'), 'coming-title', 'Coming up', upcoming.filter(e => typeOf(e.type) !== 'exam').slice(0, 5), 'class');
+    block($('next-exams'), 'exams-title', 'Upcoming exams', upcoming.filter(e => typeOf(e.type) === 'exam').slice(0, 5), 'exam');
+  }
+  function renderEvents() { renderHomeSections(); renderSearch(); }
+
+  function setFilter(next) {
+    filter = next; shown = PAGE;
+    document.querySelectorAll('#search-filters [data-filter]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.filter === next)));
+    renderSearch();
+  }
+  $('search-input').addEventListener('input', event => {
+    clearTimeout(timer);
+    timer = setTimeout(() => { query = event.target.value; shown = PAGE; renderSearch(); }, 120);
+  });
+  $('search-input').addEventListener('keydown', event => { if (event.key === 'Escape') $('search-clear').click(); });
+  $('search-clear').addEventListener('click', () => { query = ''; browse = false; $('search-input').value = ''; setFilter('all'); $('search-input').focus(); });
+  $('search-filters').addEventListener('click', event => { const b = event.target.closest('[data-filter]'); if (b) setFilter(b.dataset.filter); });
+  $('search-results').addEventListener('click', event => { if (event.target.closest('#search-more')) { shown += PAGE; renderSearch(); } });
+  $('home-sections').addEventListener('click', event => {
+    const see = event.target.closest('[data-see]');
+    if (see) { browse = true; setFilter(see.dataset.see); window.scrollTo({ top: 0 }); }
+  });
+
+  let loading = false, started = false;
+  async function loadAll() {
+    if (loading) return;
+    loading = true;
+    try {
+      if (!started) { await Store.init(); started = true; }
+      const lists = await Promise.all(rooms.map(room => Store.listEvents(room.id)));
+      all = lists.flat(); loaded = true; failed = false;
+      // Refresh the saved copies from the latest events (times may have changed, or an event may have been deleted).
+      const saved = new Set(Store.bookmarks.list().map(b => b.roomId));
+      rooms.forEach((room, i) => { if (saved.has(room.id)) { try { Store.bookmarks.sync(room.id, lists[i]); } catch (error) { console.error(error); } } });
+      renderMyEvents();
+    } catch (error) { console.error(error); if (!loaded) failed = true; }
+    loading = false;
+    renderEvents();
+  }
+  renderEvents();
+  loadAll();
+
+  Store.subscribe(change => { if (change.type === 'bookmarks') renderMyEvents(); if (change.type === 'events') loadAll(); });
 })();

@@ -161,7 +161,8 @@ assert.ok(/id="room-list"/.test(read('index.html')) && /\.menu \{/.test(css), 'h
   const used = new Set([...cal.matchAll(/class="([a-z][\w-]*)/g)].map(m => m[1]).concat(['cal-grid', 'cal-day-head', 'cal-times', 'cal-col', 'cal-corner', 'cal-ev', 'cal-now', 'cal-hover']));
   for (const name of used) assert.ok(css.includes(`.${name}`), `calendar class .${name} is styled`);
 }
-assert.ok(/@media \(max-width: 759px\)[\s\S]*\.date-pill:not\(\.selected\) \{ display: none; \}/.test(css), 'phones show one tidy date row');
+assert.ok(/@media \(max-width: 759px\)[\s\S]*\.date-nav \{ display: none; \}[\s\S]*\.day-bar \{ display: block; \}[\s\S]*\.day-tile/.test(css), 'phones use the merged month + day strip');
+assert.ok(!/\.chip-sub \{[^}]*ellipsis/.test(css) && !/\.my-title, \.result-list[^{]*\{[^}]*nowrap/.test(css), 'event names are never cut off in chips or lists');
 assert.ok(read('room.html').includes('id="date-today"'), 'the date bar has a Today button');
 assert.ok(read('functions/api/admin/events.js').includes('body.replace !== true') && read('js/admin.js').includes('conflict-replace'), 'the admin can replace clashing events');
 for (const id of ['event-repeat', 'event-repeat-mode', 'event-repeat-until', 'repeat-days-wrap']) assert.ok(read('admin.html').includes(`id="${id}"`), `admin recurrence control ${id}`);
@@ -246,7 +247,9 @@ console.log('PASS: Cloudflare runtime config, admin session security and permiss
   assert.ok(read('room.html').includes('id="date-strip"') && roomJs.includes("data-date="), 'room page picks one date at a time');
   assert.ok(roomJs.includes("state.events.filter(e => e.date === state.date)"), 'only the selected date\'s events are listed');
   assert.ok(roomJs.includes('/api/admin/session') && roomJs.includes('session.canAdd'), 'the + Event button follows who may add events');
-  assert.ok(roomJs.includes("const whole = Math.min(availW / w, availH / h)"), 'phones start with the whole classroom in view');
+  assert.ok(roomJs.includes('PHONE_READABLE') && roomJs.includes('showWhole'), 'phones open at a readable zoom with a whole-room toggle');
+  assert.ok(read('room.html').includes('id="day-strip"') && read('room.html').includes('id="month-btn"'), 'room page has the phone day strip');
+  assert.ok(read('index.html').includes('id="search-input"') && read('index.html').includes('id="coming-up"') && read('index.html').includes('id="next-exams"'), 'home has search and upcoming sections');
   assert.ok(roomJs.includes('touchmove') && roomJs.includes('ctrlKey'), 'pinch and ctrl-scroll zoom');
   assert.ok(homeJs.includes('Classes') && homeJs.includes('Exams') && homeJs.includes('data-class-date'), 'My events: classes by date, exams listed');
   for (const id of ['mode-options', 'coadmin-form', 'coadmin-list', 'detail-edit', 'calendar', 'guest-continue']) assert.ok(adminHtml.includes(`id="${id}"`), `admin page has ${id}`);
