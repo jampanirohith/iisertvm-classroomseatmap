@@ -149,7 +149,21 @@ assert.ok(!fs.existsSync(path.join(root, 'js/theme.js')), 'theme.js is gone');
   }
   assert.ok(pointsOf('lhc-aryabhatta').every(([x, y], _, all) => all.some(([x2, y2]) => x2 === 1200 - x && y2 === y)), 'Aryabhatta is centred');
 }
-assert.ok(/@media \(max-width: 759px\)[\s\S]*\.room-list \{ grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/.test(css), 'phones show two classrooms per row');
+// Plain, flat styling: no glass blur, no gradients (except the calendar's hour lines), no decorative serif.
+assert.ok(!/backdrop-filter|blur\(/.test(css), 'no glass / blur effects');
+assert.ok((css.match(/gradient\(/g) || []).length === 1 && /\.cal-col \{[^}]*linear-gradient/.test(css), 'no gradients except the calendar hour lines');
+assert.ok(!/(^|[^-])serif|box-shadow/.test(css.replace(/sans-serif/g, "")), 'no serif headings or drop shadows');
+for (const page of ['index.html', 'interactive-map.html', 'admin.html']) assert.ok(read(page).includes('class="site-bar"'), `${page} has the simple top menu`);
+assert.ok(/id="room-list"/.test(read('index.html')) && /\.menu \{/.test(css), 'home page lists classrooms as a plain menu');
+// Every class the admin calendar writes into the page must be styled (a rename once broke the grid).
+{
+  const cal = read('js/week-calendar.js');
+  const used = new Set([...cal.matchAll(/class="([a-z][\w-]*)/g)].map(m => m[1]).concat(['cal-grid', 'cal-day-head', 'cal-times', 'cal-col', 'cal-corner', 'cal-ev', 'cal-now', 'cal-hover']));
+  for (const name of used) assert.ok(css.includes(`.${name}`), `calendar class .${name} is styled`);
+}
+assert.ok(/@media \(max-width: 759px\)[\s\S]*\.date-pill:not\(\.selected\) \{ display: none; \}/.test(css), 'phones show one tidy date row');
+assert.ok(read('room.html').includes('id="date-today"'), 'the date bar has a Today button');
+assert.ok(read('functions/api/admin/events.js').includes('body.replace !== true') && read('js/admin.js').includes('conflict-replace'), 'the admin can replace clashing events');
 for (const id of ['event-repeat', 'event-repeat-mode', 'event-repeat-until', 'repeat-days-wrap']) assert.ok(read('admin.html').includes(`id="${id}"`), `admin recurrence control ${id}`);
 for (const script of ['js/format.js', 'js/recurrence.js', 'js/week-calendar.js']) assert.ok(fs.existsSync(path.join(root, script)), `${script} exists`);
 console.log('PASS: classrooms, layouts, database files, pages, theme wiring and recurrence dates');

@@ -14,6 +14,7 @@ function install() {
     if (op === 'eq') return String(row[key]) === want;
     if (op === 'gte') return String(row[key]) >= want;
     if (op === 'lte') return String(row[key]) <= want;
+    if (op === 'in') return want.replace(/^\(|\)$/g, '').split(',').includes(String(row[key]));
     return true;
   };
 

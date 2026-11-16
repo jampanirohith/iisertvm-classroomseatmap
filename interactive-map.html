@@ -4,22 +4,29 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" content="#f3f4f6" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#070708" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f6f6f4" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121214" media="(prefers-color-scheme: dark)">
   <title>Lecture Hall Complex map - IISER TVM</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body class="map-page">
+  <header class="site-bar">
+    <div class="site-bar-inner">
+      <a class="brand" href="index.html"><b>Lecture Hall Complex</b><small>IISER Thiruvananthapuram</small></a>
+      <nav class="site-nav" aria-label="Main">
+        <a href="index.html">Classrooms</a>
+        <a href="interactive-map.html" aria-current="page">Floor plan</a>
+        <a href="admin.html">Admin</a>
+      </nav>
+    </div>
+  </header>
   <main class="shell">
-    <div class="map-page-actions"><a class="back" href="index.html">&larr; Lecture Hall Complex</a></div>
-    <header class="room-head">
-      <h1>Lecture Hall Complex</h1>
-      <p class="muted">Select a classroom to see its seating arrangement.</p>
-    </header>
+    <h1>Floor plan</h1>
+    <p class="lede">Select a classroom to see its seating arrangement.</p>
     <section class="map-card" aria-label="Lecture Hall Complex floor plan">
 <svg class="lhc-map-svg" viewBox="0 0 1200 830" role="img" aria-labelledby="map-title">
 <title id="map-title">Lecture Hall Complex floor plan</title>
-<rect class="fp-bg" x="10" y="10" width="1180" height="810" rx="28"/>
+<rect class="fp-bg" x="10" y="10" width="1180" height="810" rx="8"/>
 <polygon class="fp-floor" points="560,120 640,120 640,280 1020,660 900,790 300,790 180,660 560,280"/>
 <rect class="fp-lobby" x="505" y="28" width="190" height="104" rx="8"/>
 <text class="fp-label" x="600" y="215" text-anchor="middle">Lobby</text>

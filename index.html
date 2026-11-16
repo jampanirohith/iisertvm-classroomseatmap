@@ -4,24 +4,31 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" content="#f3f4f6" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#070708" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f6f6f4" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121214" media="(prefers-color-scheme: dark)">
   <title>Lecture Hall Complex - IISER TVM</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+  <header class="site-bar">
+    <div class="site-bar-inner">
+      <a class="brand" href="index.html"><b>Lecture Hall Complex</b><small>IISER Thiruvananthapuram</small></a>
+      <nav class="site-nav" aria-label="Main">
+        <a href="index.html" aria-current="page">Classrooms</a>
+        <a href="interactive-map.html">Floor plan</a>
+        <a href="admin.html">Admin</a>
+      </nav>
+    </div>
+  </header>
   <main class="shell">
-    <header class="home-head">
-      <div class="home-head-top"><p class="eyebrow">IISER Thiruvananthapuram</p></div>
-      <h1>Lecture Hall Complex</h1>
-      <p class="lede">Pick a classroom to see its seating, schedule and exam seats.</p>
-    </header>
     <section aria-labelledby="rooms-title">
-      <h2 class="section-title" id="rooms-title">Classrooms</h2>
-      <ul class="room-list" id="room-list"></ul>
+      <div class="home-head">
+        <h1 id="rooms-title">Classrooms</h1>
+        <p class="lede">Choose a classroom to see its seats, schedule and exam seating.</p>
+      </div>
+      <ul class="menu" id="room-list"></ul>
     </section>
     <section class="my-events" id="my-events" aria-labelledby="my-title"></section>
-    <nav class="home-links" aria-label="More"><a href="interactive-map.html">Floor plan &rarr;</a><a href="admin.html">Admin</a></nav>
   </main>
   <script src="supabase/config.js"></script>
   <script src="js/format.js"></script>

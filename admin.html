@@ -4,12 +4,22 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" content="#f3f4f6" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#070708" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#f6f6f4" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121214" media="(prefers-color-scheme: dark)">
   <title>Admin - IISER TVM Lecture Hall Complex</title>
   <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
+  <header class="site-bar">
+    <div class="site-bar-inner">
+      <a class="brand" href="index.html"><b>Lecture Hall Complex</b><small>IISER Thiruvananthapuram</small></a>
+      <nav class="site-nav" aria-label="Main">
+        <a href="index.html">Classrooms</a>
+        <a href="interactive-map.html">Floor plan</a>
+        <a href="admin.html" aria-current="page">Admin</a>
+      </nav>
+    </div>
+  </header>
   <main class="shell admin-shell">
     <header class="admin-top">
       <div>
@@ -37,7 +47,7 @@
       </form>
       <p class="admin-message" id="login-message" role="status" aria-live="polite"></p>
       <button type="button" class="btn" id="guest-continue" hidden>Add an event without signing in</button>
-      <p style="margin-top:16px"><a class="back" href="index.html">&larr; Back to classrooms</a></p>
+      
     </section>
 
     <div id="admin-console" class="admin-hidden">
@@ -150,6 +160,11 @@
         <textarea id="event-note" rows="2" maxlength="200"></textarea>
       </label>
       <p class="admin-message" id="form-message" role="status" aria-live="polite"></p>
+      <div class="conflict-box" id="conflict-box" hidden>
+        <strong>This time is already taken in this classroom:</strong>
+        <ul id="conflict-list"></ul>
+        <button type="button" class="btn danger" id="conflict-replace" hidden>Replace them with this event</button>
+      </div>
       <div class="dialog-actions">
         <button type="button" class="btn" data-close>Cancel</button>
         <button type="submit" class="btn primary" id="event-save">Save event</button>

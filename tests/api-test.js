@@ -66,7 +66,17 @@ const ORIGIN = 'https://lhc.example';
   const first = await add(adminCookie);
   assert.equal(first.status, 201);
   assert.equal(first.data.events[0].created_by, 'admin');
-  assert.equal((await add(adminCookie, { start: '10:30', end: '11:30' })).status, 409, 'overlapping events are rejected');
+  const clash = await add(adminCookie, { start: '10:30', end: '11:30' });
+  assert.equal(clash.status, 409, 'overlapping events are rejected');
+  assert.equal(clash.data.conflicts[0].id, first.data.events[0].id, 'the clash names the existing event');
+  const replaced = await call(events, 'POST', '/api/admin/events', { cookie: adminCookie, body: { roomId: 'lhc-kaumudi', replace: true, events: [event({ start: '10:30', end: '11:30', title: 'Replacement' })] } });
+  assert.equal(replaced.status, 201, 'the admin can replace a clashing event');
+  const oldId = first.data.events[0].id;
+  assert.ok(!(await call(events, 'GET', '/api/admin/events?roomId=lhc-kaumudi')).data.events.some(e => e.id === oldId), 'the replaced event is gone');
+  assert.equal((await call(events, 'DELETE', `/api/admin/events?roomId=lhc-kaumudi&eventId=${replaced.data.events[0].id}`, { cookie: adminCookie })).status, 200);
+  const first2 = await add(adminCookie);
+  assert.equal(first2.status, 201);
+  first.data.events[0].id = first2.data.events[0].id;
   assert.equal((await add(adminCookie, { start: '11:00', end: '12:00', title: 'Back to back' })).status, 201, 'back-to-back events are allowed');
   assert.equal((await add(adminCookie, {}, 'lhc-venus')).status, 201, 'other rooms are independent');
 
@@ -79,6 +89,8 @@ const ORIGIN = 'https://lhc.example';
   assert.equal(mine.status, 201);
   assert.equal(mine.data.events[0].created_by, 'prof.rao@iisertvm.ac.in');
   const mineId = mine.data.events[0].id, adminId = first.data.events[0].id;
+  const sneaky = await call(events, 'POST', '/api/admin/events', { cookie: coCookie, body: { roomId: 'lhc-kaumudi', replace: true, events: [event({ title: 'Take over', date: '2026-11-10' })] } });
+  assert.equal(sneaky.status, 403, 'a co-admin cannot replace other events');
 
   // --- edit and reschedule
   const edit = (cookie, id, extra, room = 'lhc-kaumudi') => call(events, 'PATCH', `/api/admin/events?roomId=${room}&eventId=${id}`, { cookie, body: event(extra) });

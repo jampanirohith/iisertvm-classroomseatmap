@@ -231,6 +231,7 @@
       const date = addDays(state.date, n), d = parseDate(date), mid = n === 0;
       return `<button type="button" class="date-pill${mid ? ' selected' : ''}" data-date="${esc(date)}" data-mid="${mid}" aria-label="${esc(dateLong(date))}${mid ? ', open calendar' : ''}" ${mid ? 'aria-haspopup="dialog" aria-expanded="' + !$('pk-pop').hidden + '"' : ''}><span>${esc(d ? part(d, { weekday: 'short' }) : '')}</span><b>${esc(dayLabel(date))}${mid ? calIcon : ''}</b></button>`;
     }).join('');
+    $('date-today').hidden = state.date === todayISO();
     if (!$('pk-pop').hidden) renderCal();
     strip.innerHTML = state.events.filter(e => e.date === state.date).map(e => {
       const selected = String(e.id) === String(state.eventId);
@@ -342,6 +343,7 @@
     if (chip && chip.dataset.event !== String(state.eventId)) selectEvent(chip.dataset.event);
   });
   $('room-foot').addEventListener('click', e => { const mark = e.target.closest('[data-bookmark]'); if (mark) toggleBookmark(mark.dataset.bookmark); });
+  $('date-today').addEventListener('click', () => { $('pk-pop').hidden = true; goDate(todayISO()); });
   $('strip-left').addEventListener('click', () => goDate(addDays(state.date, -1)));
   $('strip-right').addEventListener('click', () => goDate(addDays(state.date, 1)));
 

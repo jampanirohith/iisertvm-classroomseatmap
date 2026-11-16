@@ -25,6 +25,7 @@
     if (!response.ok) {
       const error = new Error(body.error || (response.status === 401 ? 'Please sign in again.' : `Request failed (${response.status}).`));
       error.status = response.status;
+      error.body = body;
       throw error;
     }
     return body;
@@ -216,6 +217,7 @@
     const weekday = recurrence.weekday(date);
     weekdayInputs().forEach(input => { input.checked = Number(input.value) === weekday; });
     setMessage($('form-message'), '');
+    $('conflict-box').hidden = true;
     syncRepeatBounds();
     updateRepeatControls();
     if (editing) { $('class-repeat-panel').hidden = true; $('repeat-settings').hidden = true; }   // one session at a time when editing
@@ -256,21 +258,41 @@
     let dates;
     try { dates = chosenDates(); }
     catch (error) { setMessage(message, error.message, 'error'); return; }
-    const sessions = dates.map(date => ({ ...base, date }));
-    const submit = $('event-save');
-    submit.disabled = true;
+    await saveNew(dates.map(date => ({ ...base, date })), false);
+  });
+
+  // Adds one or more sessions. When they clash with events already there, the clash is listed and the admin can replace them.
+  function showConflicts(error) {
+    const found = (error.body && error.body.conflicts) || [];
+    $('conflict-list').innerHTML = found.map(c => `<li>${F.esc(F.dateShort(c.date))}, ${F.esc(F.timeLabel(c.start))} – ${F.esc(F.timeLabel(c.end))}: ${F.esc(c.title)}</li>`).join('')
+      + ((error.body && error.body.conflictCount > found.length) ? `<li>and ${error.body.conflictCount - found.length} more</li>` : '');
+    $('conflict-replace').hidden = role() !== 'admin';
+    $('conflict-box').hidden = false;
+    setMessage($('form-message'), '');
+    $('conflict-box').scrollIntoView({ block: 'nearest' });
+  }
+  async function saveNew(sessions, replace) {
+    const message = $('form-message'), submit = $('event-save'), replaceBtn = $('conflict-replace');
+    $('conflict-box').hidden = true;
+    submit.disabled = true; replaceBtn.disabled = true;
     setMessage(message, `Saving ${sessions.length} event ${sessions.length === 1 ? 'session' : 'sessions'}…`);
     try {
-      const result = await api('/api/admin/events', { method: 'POST', body: JSON.stringify({ roomId: roomSelect.value, events: sessions }) });
+      const result = await api('/api/admin/events', { method: 'POST', body: JSON.stringify({ roomId: roomSelect.value, replace: replace || undefined, events: sessions }) });
       const count = (result.events || []).length || sessions.length;
       eventDialog.close();
       setMessage($('manager-message'), `Saved ${count} event ${count === 1 ? 'session' : 'sessions'}.`, 'success');
+      state.pendingSessions = null;
       await loadEvents(false);
       calendar.showDate(sessions[0].date);
     } catch (error) {
       setMessage(message, error.message, 'error');
+      if (error.status === 409 && error.body && error.body.conflicts) { state.pendingSessions = sessions; showConflicts(error); }
       if (error.status === 401) { eventDialog.close(); await loadSession(); }
-    } finally { submit.disabled = false; }
+    } finally { submit.disabled = false; replaceBtn.disabled = false; }
+  }
+  $('conflict-replace').addEventListener('click', () => {
+    const ok = confirm('Delete the listed events and save this one in their place? Exam seat marks on the deleted events are removed too.');
+    if (ok && state.pendingSessions) saveNew(state.pendingSessions, true);
   });
 
   // Saves changes to one event (edit dialog or drag-and-drop). Returns true on success.

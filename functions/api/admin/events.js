@@ -87,9 +87,27 @@ async function handlePost(request, env, actor) {
   const existingResult = await databaseRequest(env, `events?${range.toString()}`);
   if (existingResult.error) return publicError(existingResult);
   const existing = Array.isArray(existingResult.data) ? existingResult.data : [];
+  const conflicts = new Map();
   for (const event of normalized) {
-    const conflict = existing.find(previous => previous.event_date === event.event_date && timeOverlap({ start: event.start_time, end: event.end_time }, previous));
-    if (conflict) return jsonResponse({ error: `There is already an event in this classroom on ${event.event_date} that overlaps this time (${conflict.title}).` }, 409);
+    for (const previous of existing) {
+      if (previous.event_date === event.event_date && timeOverlap({ start: event.start_time, end: event.end_time }, previous)) {
+        conflicts.set(previous.id, { id: previous.id, title: previous.title, date: previous.event_date, start: time5(previous.start_time), end: time5(previous.end_time) });
+      }
+    }
+  }
+  if (conflicts.size) {
+    const list = [...conflicts.values()].sort((a, b) => `${a.date}${a.start}`.localeCompare(`${b.date}${b.start}`));
+    if (body.replace !== true) {
+      return jsonResponse({ error: `This overlaps ${list.length === 1 ? 'an event' : `${list.length} events`} already in this classroom (${list[0].title} on ${list[0].date}).`, conflicts: list.slice(0, 12), conflictCount: list.length }, 409);
+    }
+    // Replacing deletes other people's events, so only the admin may do it.
+    if (!actor || actor.role !== 'admin') return jsonResponse({ error: 'Only the admin can replace existing events.' }, 403);
+    const ids = list.map(item => item.id).filter(id => UUID.test(id));
+    const removal = await databaseRequest(env, `events?${new URLSearchParams({ id: `in.(${ids.join(',')})`, room_id: `eq.${roomId}`, select: 'id' })}`, {
+      method: 'DELETE',
+      headers: { Prefer: 'return=representation' }
+    });
+    if (removal.error) return publicError(removal);
   }
 
   const insert = await databaseRequest(env, `events?select=${COLUMNS}`, {
@@ -147,7 +165,7 @@ async function handlePatch(request, env, url, actor) {
   const sameDay = await databaseRequest(env, `events?${new URLSearchParams({ select: 'id,title,start_time,end_time', room_id: `eq.${roomId}`, event_date: `eq.${clean.event_date}` })}`);
   if (sameDay.error) return publicError(sameDay);
   const conflict = (Array.isArray(sameDay.data) ? sameDay.data : []).find(other => other.id !== eventId && timeOverlap({ start: clean.start_time, end: clean.end_time }, other));
-  if (conflict) return jsonResponse({ error: `That time overlaps another event in this classroom (${conflict.title}).` }, 409);
+  if (conflict) return jsonResponse({ error: `That time overlaps another event in this classroom (${conflict.title}).`, conflicts: [{ id: conflict.id, title: conflict.title, date: clean.event_date, start: time5(conflict.start_time), end: time5(conflict.end_time) }] }, 409);
 
   const result = await databaseRequest(env, `events?${new URLSearchParams({ ...filter, select: COLUMNS })}`, {
     method: 'PATCH',
