@@ -1,0 +1,14 @@
+{
+  "name": "Lecture Hall Complex - IISER TVM",
+  "short_name": "LHC IISER TVM",
+  "description": "Classroom seat maps, class timetable and exam seating for the IISER Thiruvananthapuram Lecture Hall Complex.",
+  "start_url": "index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f6f4",
+  "theme_color": "#1d4ed8",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

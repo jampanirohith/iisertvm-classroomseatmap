@@ -58,7 +58,9 @@ button { cursor: pointer; }
 /* ---------- site bar (home, floor plan, admin) ---------- */
 .site-bar { border-bottom: 1px solid var(--line); background: var(--surface); }
 .site-bar-inner { display: flex; align-items: center; justify-content: space-between; gap: 16px; max-width: 960px; margin: 0 auto; padding: 12px 18px; }
-.brand { display: flex; flex-direction: column; text-decoration: none; line-height: 1.25; }
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; text-decoration: none; }
+.brand-icon { flex: 0 0 auto; width: 36px; height: 36px; border-radius: 8px; }
+.brand-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
 .brand b { font-size: 17px; font-weight: 650; }
 .brand small { color: var(--muted); font-size: 12px; }
 .site-nav { display: flex; gap: 4px; }
@@ -175,7 +177,7 @@ dialog h2 { font-size: 18px; }
 .room-hit:focus-visible .room-shape.tone-a, .room-hit:focus-visible .room-shape.tone-b, .room-hit:focus-visible .room-shape.tone-c { fill: var(--fp-room-hover); }
 
 /* ---------- classroom page ---------- */
-body.room-page { display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
+body.room-page { display: flex; flex-direction: column; min-height: 0; height: 100vh; height: 100dvh; overflow: hidden; }
 .topbar { flex: 0 0 auto; border-bottom: 1px solid var(--line); background: var(--surface); }
 .topbar-inner { display: flex; align-items: center; gap: 10px; max-width: 1240px; margin: 0 auto; padding: 8px 14px; }
 .back-btn { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 6px; color: var(--ink); text-decoration: none; }
@@ -370,10 +372,17 @@ body.room-page #toast { bottom: 140px; }
   .shell { padding: 20px 14px 44px; }
   .my-events { margin-top: 28px; }
   .my-open { min-height: 56px; }
-  .site-bar-inner { flex-wrap: wrap; gap: 6px; padding: 10px 14px 8px; }
-  .site-nav { width: calc(100% + 18px); margin: 0 -9px; }
-  .site-nav a { flex: 1; padding: 8px 6px; text-align: center; font-size: 14px; }
-  .topbar h1 { font-size: 18px; }
+  .site-bar-inner { flex-wrap: wrap; gap: 8px; padding: 10px 14px 0; }
+  .brand-icon { width: 34px; height: 34px; }
+  .brand b { font-size: 16px; }
+  .site-nav { width: calc(100% + 28px); margin: 0 -14px; gap: 0; border-top: 1px solid var(--line); }
+  .site-nav a { flex: 1; padding: 11px 6px 9px; border-bottom: 3px solid transparent; border-radius: 0; text-align: center; font-size: 14px; }
+  .site-nav a:hover { background: transparent; }
+  .site-nav a[aria-current="page"] { background: transparent; border-bottom-color: var(--accent); font-weight: 600; }
+  .topbar h1 { font-size: 17px; }
+  .topbar-inner { padding: 6px 10px; }
+  .back-btn { width: 36px; height: 36px; }
+  #room-sub { font-size: 12px; }
   .map-scroll { padding: 12px 8px 14px; }
   .zoom-tools { right: 10px; bottom: 12px; }
   .admin-panel { padding: 16px; }
@@ -383,23 +392,41 @@ body.room-page #toast { bottom: 140px; }
   .field-row.stack { grid-template-columns: 1fr; gap: 0; }
 
   /* Date bar: a month button and a scrolling row of day tiles, with the day's events below. */
-  .event-bar-inner { flex-direction: column; align-items: stretch; gap: 6px; padding: 6px 0 8px; }
+  .event-bar-inner { flex-direction: column; align-items: stretch; gap: 2px; padding: 2px 0 6px; }
   .date-nav { display: none; }
   .day-bar { display: block; }
   .day-head { display: flex; align-items: center; justify-content: space-between; padding: 0 8px 0 12px; }
-  .month-btn { display: inline-flex; align-items: center; gap: 4px; padding: 6px 4px; border: 0; background: transparent; font-size: 16px; font-weight: 600; }
+  .month-btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 4px; border: 0; background: transparent; font-size: 15px; font-weight: 600; }
   .day-strip { position: relative; display: flex; gap: 4px; padding: 2px 12px; overflow-x: auto; scrollbar-width: none; }
   .day-strip::-webkit-scrollbar { display: none; }
-  .day-tile { position: relative; flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 46px; height: 58px; padding: 0; border: 1px solid transparent; border-radius: 8px; background: transparent; }
+  .day-tile { position: relative; flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 44px; height: 50px; padding: 0; border: 1px solid transparent; border-radius: 8px; background: transparent; }
   .day-tile span { color: var(--muted); font-size: 11px; font-weight: 500; }
-  .day-tile b { font-size: 18px; font-weight: 600; line-height: 1; }
+  .day-tile b { font-size: 17px; font-weight: 600; line-height: 1; }
   .day-tile.today { border-color: var(--line-strong); }
-  .day-tile.has::after { content: ""; position: absolute; bottom: 5px; width: 5px; height: 5px; border-radius: 50%; background: var(--class); }
+  .day-tile.has::after { content: ""; position: absolute; bottom: 4px; width: 5px; height: 5px; border-radius: 50%; background: var(--class); }
   .day-tile.selected { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
   .day-tile.selected span { color: inherit; opacity: .85; }
   .day-tile.selected.has::after { background: var(--accent-ink); }
   .pk-pop { left: 12px; right: 12px; width: auto; max-width: 320px; }
   .event-strip { flex: none; width: 100%; padding: 0 12px 2px; }
-  .chip { min-width: 128px; }
+  .event-strip { padding-top: 4px; }
+  .chip { min-width: 140px; max-width: 240px; min-height: 44px; padding: 5px 32px 5px 9px; }
+  .chip-time { font-size: 13px; }
+  .room-foot { gap: 6px 12px; padding: 8px 12px max(14px, env(safe-area-inset-bottom)); }
+  .foot-event { flex-basis: 100%; }
+  .foot-event strong { font-size: 15px; }
+  .foot-event span { font-size: 12.5px; }
+  .bookmark-btn { padding: 6px 11px; font-size: 13px; }
+  .legend { gap: 2px 12px; font-size: 12px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+/* ---------- "all the best" popup (bookmarked exam about to start) ---------- */
+#cheer-dialog { max-width: 320px; padding: 22px 20px 0; overflow: hidden; text-align: center; }
+.cheer-art { display: grid; place-items: center; min-height: 190px; }
+.cheer-art img { display: block; width: auto; height: 190px; transform-origin: 50% 100%; animation: cheer-dance .7s ease-in-out infinite alternate; }
+#cheer-dialog h2 { margin-top: 14px; font-size: 26px; }
+.cheer-exam { margin-top: 4px; color: var(--muted); font-size: 15px; overflow-wrap: anywhere; }
+#cheer-dialog .dialog-actions { justify-content: center; margin: 16px 0 20px; }
+@keyframes cheer-dance { from { transform: rotate(-5deg) translateY(0); } to { transform: rotate(5deg) translateY(-8px); } }
+@media (prefers-reduced-motion: reduce) { .cheer-art img { animation: none; } }

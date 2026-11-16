@@ -15,5 +15,8 @@ What changed
 - Plain, flat look; simple top menu; plain seat map.
 - Home: search for classes and exams; today's count per classroom.
 - Phones: month + day-tile strip for dates; seat map opens at a readable size (fit button shows the whole room).
+- Install as an app (Chrome's default install prompt) and offline fallback pages.
+- Bookmarked exam opened 15 minutes before it starts: "All the best!" popup with the dancing kitten (transparent background).
+- Phones: Add to My events no longer falls below the screen; header reformatted (icon + tab menu); date and events area more compact.
 - Full event names everywhere (no cut-off text).
 - Admin weekly calendar styling repaired; adding an event that clashes now lists the clash and lets the admin replace it.

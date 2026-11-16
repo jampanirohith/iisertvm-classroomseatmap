@@ -9,7 +9,7 @@ const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
 const plain = v => JSON.parse(JSON.stringify(v));   // values from the vm sandbox have a different Array prototype
 
 // Every script parses.
-for (const f of ['js/data.js', 'js/store.js', 'js/room.js', 'js/home.js', 'js/map.js', 'js/format.js', 'js/admin.js', 'js/week-calendar.js', 'js/recurrence.js', 'supabase/config.js']) new vm.Script(read(f), { filename: f });
+for (const f of ['js/data.js', 'js/store.js', 'js/room.js', 'js/home.js', 'js/map.js', 'js/format.js', 'js/admin.js', 'js/week-calendar.js', 'js/recurrence.js', 'js/cheer.js', 'js/pwa.js', 'sw.js', 'supabase/config.js']) new vm.Script(read(f), { filename: f });
 
 // Classrooms.
 const sandbox = { window: {} };
@@ -257,4 +257,48 @@ console.log('PASS: Cloudflare runtime config, admin session security and permiss
   for (const value of ['admin', 'coadmin', 'anyone']) assert.ok(adminHtml.includes(`name="mode" value="${value}"`), `settings offer the ${value} option`);
   assert.ok(adminJs.includes("method: 'PATCH'") && read('js/week-calendar.js').includes('onMove'), 'events can be edited and dragged to reschedule');
   console.log('PASS: page structure — date column, add-event visibility, calendar, settings');
+}
+
+// Install as an app: manifest, icons, service worker on every page; Chrome's own install prompt is left alone.
+{
+  const manifest = JSON.parse(read('manifest.webmanifest'));
+  assert.equal(manifest.display, 'standalone');
+  assert.ok(manifest.start_url && manifest.name && manifest.short_name);
+  for (const icon of manifest.icons) assert.ok(fs.existsSync(path.join(root, icon.src)), `${icon.src} exists`);
+  assert.ok(manifest.icons.some(i => i.sizes === '192x192') && manifest.icons.some(i => i.sizes === '512x512'), 'manifest has 192 and 512 icons');
+  for (const page of ['index.html', 'room.html', 'admin.html', 'interactive-map.html']) {
+    const h = read(page);
+    assert.ok(h.includes('rel="manifest" href="manifest.webmanifest"') && h.includes('js/pwa.js'), `${page} links the manifest and registers the service worker`);
+  }
+  assert.ok(!/beforeinstallprompt/.test(read('js/pwa.js')), 'no custom install popup (Chrome shows its own)');
+  assert.ok(/fetch/.test(read('sw.js')) && read('sw.js').includes("'/api/'"), 'service worker handles fetches and skips /api');
+  for (const f of read('sw.js').match(/'(?:[\w./-]+\.(?:html|css|js|png))'/g).map(x => x.slice(1, -1))) assert.ok(fs.existsSync(path.join(root, f)), `service worker file ${f} exists`);
+  console.log('PASS: installable app files (manifest, icons, service worker) on every page');
+}
+
+// "All the best" popup: bookmarked exam, from 15 minutes before it starts until it ends.
+{
+  const ctx = { window: {}, document: {}, sessionStorage: {} };
+  vm.runInNewContext(read('js/format.js'), ctx);
+  vm.runInNewContext(read('js/cheer.js'), ctx);
+  const { isTime } = ctx.window.LHC_CHEER;
+  const exam = { id: 1, type: 'exam', date: '2026-11-19', start: '10:00', end: '12:00' };
+  const at = hhmm => new Date(`2026-11-19T${hhmm}:00`);
+  assert.equal(isTime(exam, at('09:29')), false, 'too early');
+  assert.equal(isTime(exam, at('09:45')), true, '15 minutes before');
+  assert.equal(isTime(exam, at('10:30')), true, 'during the exam');
+  assert.equal(isTime(exam, at('12:00')), false, 'after the exam');
+  assert.equal(isTime({ ...exam, type: 'class' }, at('09:50')), false, 'classes do not trigger it');
+  assert.ok(read('js/room.js').includes('LHC_CHEER.maybeShow(ev, Store.bookmarks.has(ev.id))'), 'only bookmarked exams');
+  console.log('PASS: all-the-best popup timing');
+}
+
+// Phones: the classroom page is exactly one screen tall (the page-wide min-height must not push the footer off screen).
+{
+  const css = read('css/styles.css');
+  assert.ok(/body\.room-page \{[^}]*min-height: 0;[^}]*height: 100dvh;/.test(css), 'classroom page is one screen tall, so the Add to My events button stays visible');
+  assert.ok(/\.room-foot \{[^}]*env\(safe-area-inset-bottom\)/.test(css), 'footer keeps clear of the phone gesture bar');
+  for (const page of ['index.html', 'admin.html', 'interactive-map.html']) assert.ok(read(page).includes('class="brand-icon"'), `${page} header shows the app icon`);
+  assert.ok(fs.existsSync(path.join(root, 'icons/cheer-cat.png')) && read('js/cheer.js').includes("icons/cheer-cat.png"), 'popup uses the cat picture');
+  console.log('PASS: phone layout guards');
 }

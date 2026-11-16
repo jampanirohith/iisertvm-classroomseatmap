@@ -353,6 +353,8 @@
     syncUrl();
     renderAll();
   }
+  // Bookmarked exam that is about to start (or has started): wish them luck.
+  function cheer(ev) { try { if (ev && window.LHC_CHEER) LHC_CHEER.maybeShow(ev, Store.bookmarks.has(ev.id)); } catch (error) { console.error(error); } }
 
   $('date-strip').addEventListener('click', e => {
     const pill = e.target.closest('[data-date]');
@@ -370,7 +372,9 @@
     const mark = e.target.closest('[data-bookmark]');
     if (mark) { toggleBookmark(mark.dataset.bookmark); return; }
     const chip = e.target.closest('[data-event]');
-    if (chip && chip.dataset.event !== String(state.eventId)) selectEvent(chip.dataset.event);
+    if (!chip) return;
+    if (chip.dataset.event !== String(state.eventId)) selectEvent(chip.dataset.event).then(() => cheer(currentEvent()));
+    else cheer(currentEvent());
   });
   $('room-foot').addEventListener('click', e => { const mark = e.target.closest('[data-bookmark]'); if (mark) toggleBookmark(mark.dataset.bookmark); });
   $('day-strip').addEventListener('click', e => {
@@ -451,5 +455,6 @@
     try { await loadBookings(); } catch (error) { console.error(error); state.bookings = {}; }
     syncUrl();
     renderAll();
+    cheer(currentEvent());
   })();
 })();

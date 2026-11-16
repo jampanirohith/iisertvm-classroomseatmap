@@ -3,6 +3,9 @@
 Updated: 2026-11-16
 
 ## Done
+- Phones: the classroom page was taller than the visible screen (page-wide `min-height: 100vh` overrode `100dvh`), pushing "Add to My events" off screen; fixed, and the footer now keeps clear of the gesture bar. The date and events area is more compact (about 30% less height) so the seat map gets more room. The home header shows the app icon with the name, and the menu is a tab row with an underline on the current page.
+- Installable as an app: web app manifest, icons and a service worker on every page. Chrome shows its own install option (install icon in the address bar on computers; the standard install prompt on Android). There is no custom popup. Pages open offline from the last visit; live data needs a connection.
+- "All the best" popup: when someone opens a bookmarked exam from 15 minutes before it starts until it ends (tapping the exam, or opening it from My events), a dancing kitten (transparent background, `icons/cheer-cat.png`; swap in a GIF by changing `CAT_SRC` in `js/cheer.js`) appears with "All the best!" and the exam name and time. Shown once per exam per browser tab session.
 - Plain, flat look on every page (no glass, blur, gradients or serif headings). It follows the device setting (light or dark); no theme button.
 - Simple top menu (Classrooms, Interactive map, Admin) on the home, map and admin pages; home is a plain classroom list with My events below.
 - Seat map redrawn as plain numbered boxes: free, marked and yours.
