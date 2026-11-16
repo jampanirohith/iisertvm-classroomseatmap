@@ -149,9 +149,13 @@ assert.ok(!fs.existsSync(path.join(root, 'js/theme.js')), 'theme.js is gone');
   }
   assert.ok(pointsOf('lhc-aryabhatta').every(([x, y], _, all) => all.some(([x2, y2]) => x2 === 1200 - x && y2 === y)), 'Aryabhatta is centred');
 }
-// Plain, flat styling: no glass blur, no gradients (except the calendar's hour lines), no decorative serif.
-assert.ok(!/backdrop-filter|blur\(/.test(css), 'no glass / blur effects');
-assert.ok((css.match(/gradient\(/g) || []).length === 1 && /\.cal-col \{[^}]*linear-gradient/.test(css), 'no gradients except the calendar hour lines');
+// Plain, flat styling: glass blur only in dark mode (the marked "dark glass" block), no other gradients except the calendar's hour lines, no decorative serif.
+const glass = (css.match(/\/\* dark glass \*\/[\s\S]*?\/\* end dark glass \*\//) || [''])[0];
+assert.ok(/@media \(prefers-color-scheme: dark\)/.test(glass) && /backdrop-filter/.test(glass), 'dark mode has a light glass touch');
+const flatCss = css.replace(glass, '');
+assert.ok(!/backdrop-filter|blur\(/.test(flatCss), 'no glass / blur effects outside dark mode');
+assert.ok((flatCss.match(/gradient\(/g) || []).length === 1 && /\.cal-col \{[^}]*linear-gradient/.test(flatCss), 'no gradients except the calendar hour lines');
+assert.ok(/--bg: #000000/.test(css), 'dark mode page is pure black');
 assert.ok(!/(^|[^-])serif|box-shadow/.test(css.replace(/sans-serif/g, "")), 'no serif headings or drop shadows');
 for (const page of ['index.html', 'interactive-map.html', 'admin.html']) assert.ok(read(page).includes('class="site-bar"'), `${page} has the simple top menu`);
 assert.ok(/id="room-list"/.test(read('index.html')) && /\.menu \{/.test(css), 'home page lists classrooms as a plain menu');
@@ -321,3 +325,13 @@ console.log('PASS: Cloudflare runtime config, admin session security and permiss
   assert.ok(home.includes('Store.mySeats') && read('js/room.js').includes('Your seat:') && read('js/cheer.js').includes('Your seat:'), 'seat number shown in lists, the classroom footer and the popup');
   console.log('PASS: own seat shown for exams; past events hidden by default');
 })().catch(error => { console.error(error); process.exitCode = 1; });
+
+// Phones: the dates and events can be pulled up to show the whole classroom.
+{
+  const room = read('room.html'), js = read('js/room.js'), css = read('css/styles.css');
+  assert.ok(room.includes('id="bar-handle"') && room.includes('aria-controls="event-bar-inner"') && room.includes('id="event-bar-inner"'), 'pull-up handle exists and is labelled');
+  assert.ok(js.includes('setCollapsed') && js.includes("'touchend'") && js.includes('lhc-bar-collapsed'), 'handle works by tap and swipe and is remembered');
+  assert.ok(/\.event-bar\.collapsed \.event-bar-inner \{ display: none; \}/.test(css), 'collapsed bar hides dates and events');
+  assert.ok(/\.bar-handle \{ display: none; \}/.test(css), 'handle is phone-only');
+  console.log('PASS: pull-up events bar on phones');
+}

@@ -20,5 +20,8 @@ What changed
 - Phones: Add to My events no longer falls below the screen; header reformatted (icon + tab menu); date and events area more compact.
 - Home hides past events by default (Show past button); exams show your marked seat in lists, the classroom footer and the popup.
 - "Floor plan" is now "Interactive map"; the map uses the colours of the printed floor plan while the rest of the page follows the device theme.
+- New logo (diamond classroom with seats) for the header, browser tab and installed app.
+- Phones: pull-up dates/events bar (swipe or tap) to see the whole classroom; events row redesigned.
+- Dark mode: pure black with a light glass touch.
 - Full event names everywhere (no cut-off text).
 - Admin weekly calendar styling repaired; adding an event that clashes now lists the clash and lets the admin replace it.

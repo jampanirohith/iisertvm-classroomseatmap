@@ -170,6 +170,7 @@
     const box = $('map-scroll');
     if (!state.manualZoom) {
       state.scale = fitScale();
+      box.classList.toggle('whole', isPhone() && state.showWhole);
       applyScale();
       // Only move the view when the scale changed, so marking a seat does not jump the map back.
       if (Math.abs(state.scale - state.lastScale) > 0.001) {
@@ -261,15 +262,53 @@
       return `<button type="button" class="date-pill${mid ? ' selected' : ''}" data-date="${esc(date)}" data-mid="${mid}" aria-label="${esc(dateLong(date))}${mid ? ', open calendar' : ''}" ${mid ? 'aria-haspopup="dialog" aria-expanded="' + !$('pk-pop').hidden + '"' : ''}><span>${esc(d ? part(d, { weekday: 'short' }) : '')}</span><b>${esc(dayLabel(date))}${mid ? calIcon : ''}</b></button>`;
     }).join('');
     $('date-today').hidden = $('day-today').hidden = state.date === todayISO();
+    updateSummary();
     renderDays();
     if (!$('pk-pop').hidden) renderCal();
     strip.innerHTML = state.events.filter(e => e.date === state.date).map(e => {
       const selected = String(e.id) === String(state.eventId);
       const type = typeOf(e.type);
       const marked = Store.bookmarks.has(e.id);
-      return `<div class="chip-wrap"><button type="button" class="chip${selected ? ' selected' : ''}" data-event="${esc(e.id)}" data-type="${type}" title="${esc(e.title)} · ${esc(TYPE[type])}" aria-label="${esc(e.title)}, ${esc(TYPE[type])}, ${esc(dateLong(e.date))}, ${esc(timeLabel(e.start))}" aria-pressed="${selected}"><span class="chip-time">${esc(timeLabel(e.start))}</span><span class="chip-sub">${esc(e.title)}</span></button><button type="button" class="chip-mark" data-bookmark="${esc(e.id)}" aria-pressed="${marked}" aria-label="${marked ? 'Remove bookmark from' : 'Bookmark'} ${esc(e.title)}" title="${marked ? 'Remove from My events' : 'Add to My events'}">${flag}</button></div>`;
+      return `<div class="chip-wrap"><button type="button" class="chip${selected ? ' selected' : ''}" data-event="${esc(e.id)}" data-type="${type}" title="${esc(e.title)} · ${esc(TYPE[type])}" aria-label="${esc(e.title)}, ${esc(TYPE[type])}, ${esc(dateLong(e.date))}, ${esc(timeLabel(e.start))}" aria-pressed="${selected}"><span class="chip-time">${esc(timeLabel(e.start))}${type === 'class' ? '' : `<span class="chip-tag">${esc(TYPE[type])}</span>`}</span><span class="chip-sub">${esc(e.title)}</span></button><button type="button" class="chip-mark" data-bookmark="${esc(e.id)}" aria-pressed="${marked}" aria-label="${marked ? 'Remove bookmark from' : 'Bookmark'} ${esc(e.title)}" title="${marked ? 'Remove from My events' : 'Add to My events'}">${flag}</button></div>`;
     }).join('') || '<div class="no-events">No classes or events on this day</div>';
   }
+
+  // ---------- phones: pull the dates and events up to see the whole classroom ----------
+  const BAR_KEY = 'lhc-bar-collapsed';
+  function updateSummary() {
+    const ev = currentEvent();
+    $('bar-sum').textContent = `${LHC_FMT.dateShort(state.date)} · ${ev ? `${ev.title}, ${timeLabel(ev.start)}` : 'No events'}`;
+  }
+  function setCollapsed(on, remember) {
+    const bar = $('event-bar');
+    bar.classList.toggle('collapsed', on);
+    const handle = $('bar-handle');
+    handle.setAttribute('aria-expanded', String(!on));
+    handle.setAttribute('aria-label', on ? 'Show dates and events' : 'Hide dates and events to see the whole classroom');
+    if (on) $('pk-pop').hidden = true;
+    updateSummary();
+    if (remember) { try { localStorage.setItem(BAR_KEY, on ? '1' : '0'); } catch { /* ignore */ } }
+    // Collapsed: show the whole classroom. Expanded: back to the readable size.
+    state.showWhole = on; state.manualZoom = false; state.lastScale = 0;
+    const fit = document.querySelector('[data-zoom="fit"]');
+    if (fit) { const label = on ? 'Readable size' : 'Fit whole classroom'; fit.title = label; fit.setAttribute('aria-label', label); }
+    requestAnimationFrame(() => requestAnimationFrame(refit));
+  }
+  $('bar-handle').addEventListener('click', () => setCollapsed(!$('event-bar').classList.contains('collapsed'), true));
+  (() => {
+    let t = null;
+    const bar = $('event-bar');
+    bar.addEventListener('touchstart', e => { t = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null; }, { passive: true });
+    bar.addEventListener('touchend', e => {
+      if (!t || !isPhone()) return;
+      const c = e.changedTouches[0], dx = c.clientX - t.x, dy = c.clientY - t.y;
+      t = null;
+      if (Math.abs(dy) < 36 || Math.abs(dy) < Math.abs(dx) * 1.5) return;
+      const collapsed = bar.classList.contains('collapsed');
+      if (dy < 0 && !collapsed) setCollapsed(true, true);
+      else if (dy > 0 && collapsed) setCollapsed(false, true);
+    }, { passive: true });
+  })();
 
   function renderCal() {
     const pop = $('pk-pop'), base = parseDate(calMonth || state.date) || new Date();
@@ -451,6 +490,7 @@
     showAddButton();
     if (room.layout) wireZoom(); else $('zoom-tools').hidden = true;
     if (!room.layout) $('map-scroll').outerHTML = `<div class="pending"><h2>${esc(room.name)}</h2><p>The seating map for this classroom isn't available yet.</p></div>`;
+    try { if (isPhone() && localStorage.getItem(BAR_KEY) === '1') setCollapsed(true, false); } catch { /* ignore */ }
     const status = await Store.init();
     if (status.error) notify(status.error);
     try { await loadEvents(); } catch (error) { console.error(error); state.events = []; notify('Could not load events.'); }

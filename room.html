@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#f6f6f4" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#121214" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
   <title>Classroom - IISER TVM</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png" type="image/png">
@@ -27,7 +27,7 @@
   </header>
 
   <div class="event-bar" id="event-bar" hidden>
-    <div class="event-bar-inner">
+    <div class="event-bar-inner" id="event-bar-inner">
       <div class="date-nav">
         <button type="button" class="strip-arrow" id="strip-left" aria-label="Previous day">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
@@ -48,6 +48,11 @@
       <div class="pk-pop" id="pk-pop" role="dialog" aria-label="Calendar" hidden></div>
       <div class="event-strip" id="event-strip" aria-label="Events on the selected date"></div>
     </div>
+    <button type="button" class="bar-handle" id="bar-handle" aria-expanded="true" aria-controls="event-bar-inner" aria-label="Hide dates and events to see the whole classroom">
+      <span class="grab" aria-hidden="true"></span>
+      <span class="bar-sum" id="bar-sum"></span>
+      <svg class="bar-chev" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
   </div>
 
   <main class="layout-main" id="room-body"></main>

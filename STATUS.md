@@ -3,6 +3,10 @@
 Updated: 2026-11-16
 
 ## Done
+- Phone classroom page: the dates and events can be pulled up. Swipe up on the date and events area (or tap the bar under it) to collapse it to one line (date and chosen event) and show the whole classroom; swipe down or tap to bring it back. The choice is remembered on the device.
+- Phone events row redesigned: day tiles sized to fit about seven days, and event cards with a colour bar, the time, an Exam/Other tag and the full name (cards widen for long names; the bookmark icon shows only on bookmarked events, the Add to My events button is in the footer).
+- Dark mode is now pure black with a light glass touch: a faint blue glow at the top and frosted headers, cards, menus, buttons and popups. Light mode is unchanged and flat.
+- Logo: an original mark, a diamond classroom (like the diamond halls on the floor plan) with its seats in rows, white on blue. Used in the site header, browser tab, installed app icon and home-screen icon (`icons/icon.svg` is the source for the three PNGs). It is not based on the institute's official logo; to use that instead, replace the three PNGs in `icons/`.
 - Home screen hides past events by default, in search results ("N past hidden" and a Show past button) and in My events (Show past (n) / Hide past).
 - Exams show the seat the person marked: "Seat 12" on exam rows (My events and search), "Your seat: 12" in the classroom footer, and in the "All the best" popup. It reads the seats marked on that device.
 - Phones: the classroom page was taller than the visible screen (page-wide `min-height: 100vh` overrode `100dvh`), pushing "Add to My events" off screen; fixed, and the footer now keeps clear of the gesture bar. The date and events area is more compact (about 30% less height) so the seat map gets more room. The home header shows the app icon with the name, and the menu is a tab row with an underline on the current page.
@@ -25,7 +29,6 @@ Updated: 2026-11-16
 - `supabase/schedule.sql` loads the Varsha 2026 class timetable (all four years) for Jupiter, Venus, Bhaskara and Kaumudi: 1,500 class events, Mon 27 Jul to Tue 17 Nov 2026. It deletes all existing events first. Tested on a local Postgres with the overlap constraint, run twice. Re-run it only to reset the schedule.
 
 ## Open
-- Logo: the app icon is a simple original mark (board and seats). The official IISER TVM logo was not copied; to use it, replace `icons/icon-192.png`, `icons/icon-512.png` and `icons/apple-touch-icon.png` with files made from the official artwork.
 - BSMS 1 has its own academic calendar that was not in the PDFs; it uses the same dates for now (edit the `terms` rows in schedule.sql).
 - Aryabhatta has no classes in the timetables.
 - Nothing known. After deploying, check /admin, a classroom page and the interactive map in light and dark.
