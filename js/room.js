@@ -296,6 +296,8 @@
     state.date = iso; state.eventId = null; state.bookings = {};
     syncUrl(); renderAll();
   }
+  // Seats this device marked for the selected exam.
+  const mySeats = () => Object.entries(state.bookings).filter(([, b]) => b.mine).map(([seat]) => seat).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   function renderFoot() {
     const foot = $('room-foot'), ev = currentEvent();
     const legend = [];
@@ -307,7 +309,8 @@
       const bits = [dateLong(ev.date), `${timeLabel(ev.start)} – ${timeLabel(ev.end)}`];
       if (ev.professor) bits.push(`Prof. ${ev.professor}`);
       if (ev.type === 'exam') bits.push(`${Object.keys(state.bookings).length} of ${room.capacity} seats marked`);
-      html += `<div class="foot-event"><strong>${esc(ev.title)}</strong><span>${bits.map(esc).join(' · ')}${ev.note ? `<br>${esc(ev.note)}` : ''}</span></div>`;
+      const seats = ev.type === 'exam' ? mySeats() : [];
+      html += `<div class="foot-event"><strong>${esc(ev.title)}</strong>${seats.length ? `<em class="my-seat">Your seat: ${esc(seats.join(', '))}</em>` : ''}<span>${bits.map(esc).join(' · ')}${ev.note ? `<br>${esc(ev.note)}` : ''}</span></div>`;
       html += `<button type="button" class="bookmark-btn" data-bookmark="${esc(ev.id)}" aria-pressed="${marked}">${flag}<span>${marked ? 'In My events' : 'Add to My events'}</span></button>`;
     }
     if (legend.length) html += `<div class="legend" aria-label="Seat key">${legend.join('')}</div>`;
@@ -354,7 +357,7 @@
     renderAll();
   }
   // Bookmarked exam that is about to start (or has started): wish them luck.
-  function cheer(ev) { try { if (ev && window.LHC_CHEER) LHC_CHEER.maybeShow(ev, Store.bookmarks.has(ev.id)); } catch (error) { console.error(error); } }
+  function cheer(ev) { try { if (ev && window.LHC_CHEER) LHC_CHEER.maybeShow(ev, Store.bookmarks.has(ev.id), undefined, mySeats()); } catch (error) { console.error(error); } }
 
   $('date-strip').addEventListener('click', e => {
     const pill = e.target.closest('[data-date]');

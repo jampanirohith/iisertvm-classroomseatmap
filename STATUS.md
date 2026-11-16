@@ -3,6 +3,8 @@
 Updated: 2026-11-16
 
 ## Done
+- Home screen hides past events by default, in search results ("N past hidden" and a Show past button) and in My events (Show past (n) / Hide past).
+- Exams show the seat the person marked: "Seat 12" on exam rows (My events and search), "Your seat: 12" in the classroom footer, and in the "All the best" popup. It reads the seats marked on that device.
 - Phones: the classroom page was taller than the visible screen (page-wide `min-height: 100vh` overrode `100dvh`), pushing "Add to My events" off screen; fixed, and the footer now keeps clear of the gesture bar. The date and events area is more compact (about 30% less height) so the seat map gets more room. The home header shows the app icon with the name, and the menu is a tab row with an underline on the current page.
 - Installable as an app: web app manifest, icons and a service worker on every page. Chrome shows its own install option (install icon in the address bar on computers; the standard install prompt on Android). There is no custom popup. Pages open offline from the last visit; live data needs a connection.
 - "All the best" popup: when someone opens a bookmarked exam from 15 minutes before it starts until it ends (tapping the exam, or opening it from My events), a dancing kitten (transparent background, `icons/cheer-cat.png`; swap in a GIF by changing `CAT_SRC` in `js/cheer.js`) appears with "All the best!" and the exam name and time. Shown once per exam per browser tab session.
@@ -23,6 +25,7 @@ Updated: 2026-11-16
 - `supabase/schedule.sql` loads the Varsha 2026 class timetable (all four years) for Jupiter, Venus, Bhaskara and Kaumudi: 1,500 class events, Mon 27 Jul to Tue 17 Nov 2026. It deletes all existing events first. Tested on a local Postgres with the overlap constraint, run twice. Re-run it only to reset the schedule.
 
 ## Open
+- Logo: the app icon is a simple original mark (board and seats). The official IISER TVM logo was not copied; to use it, replace `icons/icon-192.png`, `icons/icon-512.png` and `icons/apple-touch-icon.png` with files made from the official artwork.
 - BSMS 1 has its own academic calendar that was not in the PDFs; it uses the same dates for now (edit the `terms` rows in schedule.sql).
 - Aryabhatta has no classes in the timetables.
 - Nothing known. After deploying, check /admin, a classroom page and the interactive map in light and dark.

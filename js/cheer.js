@@ -25,14 +25,14 @@
     d = document.createElement('dialog');
     d.id = 'cheer-dialog';
     d.setAttribute('aria-labelledby', 'cheer-title');
-    d.innerHTML = `<div class="cheer-art"><img src="${CAT_SRC}" alt="A kitten dancing" width="176" height="247"></div><h2 id="cheer-title">All the best!</h2><p class="cheer-exam" id="cheer-exam"></p><div class="dialog-actions"><button type="button" class="btn primary" id="cheer-close">Thanks!</button></div>`;
+    d.innerHTML = `<div class="cheer-art"><img src="${CAT_SRC}" alt="A kitten dancing" width="176" height="247"></div><h2 id="cheer-title">All the best!</h2><p class="cheer-exam" id="cheer-exam"></p><p class="cheer-seat" id="cheer-seat" hidden></p><div class="dialog-actions"><button type="button" class="btn primary" id="cheer-close">Thanks!</button></div>`;
     document.body.appendChild(d);
     d.addEventListener('click', e => { if (e.target === d || e.target.id === 'cheer-close') d.close(); });
     return d;
   }
 
   // Shows the popup once per exam (per browser tab session). Returns true when it was shown.
-  function maybeShow(ev, bookmarked, now) {
+  function maybeShow(ev, bookmarked, now, seats) {
     if (!ev || !bookmarked || !isTime(ev, now)) return false;
     const key = shownKey(ev.id);
     if (seen.has(key)) return false;
@@ -40,6 +40,9 @@
     seen.add(key);
     const d = dialog();
     d.querySelector('#cheer-exam').textContent = `${ev.title} · ${F.timeLabel(ev.start)}`;
+    const seatLine = d.querySelector('#cheer-seat'), mine = Array.isArray(seats) ? seats : [];
+    seatLine.hidden = !mine.length;
+    seatLine.textContent = mine.length ? `Your seat: ${mine.join(', ')}` : '';
     if (!d.open) d.showModal();
     return true;
   }

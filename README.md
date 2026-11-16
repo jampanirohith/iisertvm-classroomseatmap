@@ -9,6 +9,7 @@ Open a classroom to see its seating arrangement, browse its events by date, book
 | `index.html` | Top menu (Classrooms, Interactive map, Admin), the classroom list and **My events** |
 | `room.html?room=lhc-kaumudi` | Seat map, one-date-at-a-time event column, bookmarks, exam seat marking |
 | `manifest.webmanifest`, `sw.js`, `icons/`, `js/pwa.js` | Install-as-app files (Chrome's own install prompt) |
+| `icons/icon-*.png` | App icon, header icon and install icon (replace with the official logo files if wanted) |
 | `js/cheer.js`, `icons/cheer-cat.png` | "All the best" popup (dancing kitten) for a bookmarked exam from 15 minutes before it starts |
 | `interactive-map.html` | Interactive map of the Lecture Hall Complex (always light colours) |
 | `admin.html` | Weekly schedule for each classroom: add, edit, reschedule, delete; settings and co-admins (admin only) |

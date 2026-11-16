@@ -430,3 +430,13 @@ body.room-page #toast { bottom: 140px; }
 #cheer-dialog .dialog-actions { justify-content: center; margin: 16px 0 20px; }
 @keyframes cheer-dance { from { transform: rotate(-5deg) translateY(0); } to { transform: rotate(5deg) translateY(-8px); } }
 @media (prefers-reduced-motion: reduce) { .cheer-art img { animation: none; } }
+
+/* ---------- exam seat shown to the person who marked it; past-event toggles ---------- */
+.my-seat { display: inline-block; align-self: flex-start; margin-top: 3px; padding: 1px 8px; border: 1px solid var(--accent); border-radius: 4px; background: var(--accent-soft); color: var(--accent); font-size: 12.5px; font-style: normal; font-weight: 600; }
+.my-text .my-seat { display: block; width: max-content; }
+.foot-event .my-seat { margin: 3px 0; font-size: 14px; }
+.cheer-seat { display: inline-block; margin-top: 12px; padding: 6px 16px; border: 1px solid var(--accent); border-radius: 6px; background: var(--accent-soft); color: var(--accent); font-size: 20px; font-weight: 700; }
+.filters .past-filter { margin-left: auto; border-style: dashed; }
+.my-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.my-head .section-title { margin: 0; }
+.past-toggle { padding: 6px 10px; font-size: 13px; }

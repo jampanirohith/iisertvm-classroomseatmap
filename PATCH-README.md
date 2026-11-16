@@ -18,5 +18,6 @@ What changed
 - Install as an app (Chrome's default install prompt) and offline fallback pages.
 - Bookmarked exam opened 15 minutes before it starts: "All the best!" popup with the dancing kitten (transparent background).
 - Phones: Add to My events no longer falls below the screen; header reformatted (icon + tab menu); date and events area more compact.
+- Home hides past events by default (Show past button); exams show your marked seat in lists, the classroom footer and the popup.
 - Full event names everywhere (no cut-off text).
 - Admin weekly calendar styling repaired; adding an event that clashes now lists the clash and lets the admin replace it.

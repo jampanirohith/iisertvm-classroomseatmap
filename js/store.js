@@ -162,6 +162,13 @@
       return { ok: true };
     },
 
+    // Seat numbers this device marked for an event (works without a connection).
+    mySeats(eventId) {
+      const prefix = `${eventId}::`;
+      return read(K.mine, []).filter(k => typeof k === 'string' && k.startsWith(prefix)).map(k => k.slice(prefix.length))
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    },
+
     subscribe(fn) { listeners.add(fn); return () => listeners.delete(fn); }
   };
   window.LHC_STORE = Store;

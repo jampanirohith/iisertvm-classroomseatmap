@@ -14,7 +14,14 @@
   const flag = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4.5L5 21V4a1 1 0 0 1 1-1z"/></svg>';
   const today = () => window.LHC_FMT.todayISO();
   const nowStamp = () => { const d = new Date(), p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
-  let classDate = null;
+  let classDate = null, showPastMine = false;
+  const isPast = e => `${e.date}T${e.end}` < nowStamp();
+  const seatTag = e => {
+    if (typeOf(e.type) !== 'exam') return '';
+    let seats = [];
+    try { seats = Store.mySeats(e.id); } catch { /* ignore */ }
+    return seats.length ? `<span class="my-seat">Seat ${esc(seats.join(', '))}</span>` : '';
+  };
 
   function row(e, lead) {
     const href = `room.html?room=${encodeURIComponent(e.roomId)}&event=${encodeURIComponent(e.id)}`;
@@ -32,7 +39,7 @@
     return `<li class="my-item${`${e.date}T${e.end}` < nowStamp() ? ' past' : ''}" data-type="${typeOf(e.type)}">
       <a class="my-open" href="${href}" aria-label="${esc(e.title)}, ${esc(meta.join(', '))}, ${esc(dateLong(e.date))}">
         <span class="my-date">${block}</span>
-        <span class="my-text"><span class="my-title">${esc(e.title)}</span><span class="my-meta">${esc(meta.join(' · '))}</span></span>
+        <span class="my-text"><span class="my-title">${esc(e.title)}</span><span class="my-meta">${esc(meta.join(' · '))}</span>${seatTag(e)}</span>
       </a>
       <button type="button" class="my-remove" data-remove="${esc(e.id)}" aria-label="Remove ${esc(e.title)} from My events" title="Remove" aria-pressed="true">${flag}</button>
     </li>`;
@@ -55,9 +62,13 @@
   }
 
   function renderMyEvents() {
-    const all = Store.bookmarks.list();
-    let html = `<h2 class="section-title" id="my-title">${flag}My events</h2>`;
-    if (!all.length) html += '<p class="my-empty">Open a classroom and tap the bookmark on an event to keep it here.</p>';
+    const saved = Store.bookmarks.list();
+    const hiddenPast = showPastMine ? 0 : saved.filter(isPast).length;
+    const all = showPastMine ? saved : saved.filter(e => !isPast(e));
+    const pastCount = saved.filter(isPast).length;
+    let html = `<div class="my-head"><h2 class="section-title" id="my-title">${flag}My events</h2>${pastCount ? `<button type="button" class="btn quiet past-toggle" data-past-mine aria-pressed="${showPastMine}">${showPastMine ? 'Hide past' : `Show past (${pastCount})`}</button>` : ''}</div>`;
+    if (!saved.length) html += '<p class="my-empty">Open a classroom and tap the bookmark on an event to keep it here.</p>';
+    else if (!all.length) html += `<p class="my-empty">No upcoming events. ${hiddenPast} past ${hiddenPast === 1 ? 'event is' : 'events are'} hidden.</p>`;
     else {
       const other = all.filter(e => typeOf(e.type) === 'other');
       html += `<div class="my-cols">${classesColumn(all.filter(e => e.type === 'class'))}${listColumn('my-exams', 'Exams', all.filter(e => e.type === 'exam'), 'Bookmark an exam to see it here.')}</div>`;
@@ -67,6 +78,7 @@
   }
 
   box.addEventListener('click', e => {
+    if (e.target.closest('[data-past-mine]')) { showPastMine = !showPastMine; renderMyEvents(); return; }
     const pill = e.target.closest('[data-class-date]');
     if (pill) { classDate = pill.dataset.classDate; renderMyEvents(); return; }
     const button = e.target.closest('[data-remove]');
@@ -84,7 +96,7 @@
   const addDays = (iso, n) => { const d = parseDate(iso); d.setDate(d.getDate() + n); return isoOf(d); };
   const norm = value => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
   const PAGE = 30;
-  let all = [], loaded = false, failed = false, filter = 'all', query = '', shown = PAGE, timer = 0;
+  let all = [], loaded = false, failed = false, filter = 'all', query = '', shown = PAGE, timer = 0, showPast = false;
 
   // One lowercase string per event with the words people search by: course, hall, teacher, type, weekday, date, time.
   function hay(e) {
@@ -116,7 +128,7 @@
     return `<li class="my-item${isUpcoming(e) ? '' : ' past'}" data-type="${typeOf(e.type)}">
       <a class="my-open" href="room.html?room=${enc(e.roomId)}&event=${enc(e.id)}" aria-label="${esc(e.title)}, ${esc(meta.join(', '))}, ${esc(dateLong(e.date))}">
         <span class="my-date"><b>${esc(d ? d.getDate() : '')}</b><span>${esc(d ? part(d, { month: 'short' }) : '')}</span></span>
-        <span class="my-text"><span class="my-title">${esc(e.title)}</span><span class="my-meta">${esc(meta.join(' · '))}</span></span>
+        <span class="my-text"><span class="my-title">${esc(e.title)}</span><span class="my-meta">${esc(meta.join(' · '))}</span>${seatTag(e)}</span>
       </a>
     </li>`;
   }
@@ -132,10 +144,13 @@
     if (failed) { box.innerHTML = '<p class="my-empty">Could not load events. Check your connection and try again.</p>'; return; }
     if (!loaded) { box.innerHTML = '<p class="my-empty">Loading events…</p>'; return; }
     const tokens = query.trim().split(/\s+/).filter(Boolean);
-    const found = upcomingFirst(all.filter(e => (filter === 'all' || typeOf(e.type) === filter) && matches(e, tokens)));
-    if (!found.length) { box.innerHTML = '<p class="my-empty">No matches. Try a course code like PHY 212, a hall name, or a date like 25 Nov.</p>'; return; }
+    const every = all.filter(e => (filter === 'all' || typeOf(e.type) === filter) && matches(e, tokens));
+    const found = upcomingFirst(showPast ? every : every.filter(isUpcoming));
+    const hidden = every.length - found.length;
+    const note = hidden ? ` · ${hidden} past hidden` : '';
+    if (!found.length) { box.innerHTML = `<p class="my-empty">${hidden ? `No upcoming matches (${hidden} past hidden). Use Show past to see them.` : 'No matches. Try a course code like PHY 212, a hall name, or a date like 25 Nov.'}</p>`; return; }
     const page = found.slice(0, shown);
-    box.innerHTML = `<p class="result-count">${found.length} ${found.length === 1 ? 'result' : 'results'}</p><ul class="my-list result-list">${page.map(resultRow).join('')}</ul>${found.length > shown ? `<button type="button" class="btn more-btn" id="search-more">Show more (${found.length - shown})</button>` : ''}`;
+    box.innerHTML = `<p class="result-count">${found.length} ${found.length === 1 ? 'result' : 'results'}${note}</p><ul class="my-list result-list">${page.map(resultRow).join('')}</ul>${found.length > shown ? `<button type="button" class="btn more-btn" id="search-more">Show more (${found.length - shown})</button>` : ''}`;
   }
 
   function renderHomeSections() {
@@ -157,8 +172,16 @@
     timer = setTimeout(() => { query = event.target.value; shown = PAGE; renderSearch(); }, 120);
   });
   $('search-input').addEventListener('keydown', event => { if (event.key === 'Escape') $('search-clear').click(); });
-  $('search-clear').addEventListener('click', () => { query = ''; $('search-input').value = ''; setFilter('all'); $('search-input').focus(); });
-  $('search-filters').addEventListener('click', event => { const b = event.target.closest('[data-filter]'); if (b) setFilter(b.dataset.filter); });
+  $('search-clear').addEventListener('click', () => { query = ''; showPast = false; document.querySelector('#search-filters [data-past]').setAttribute('aria-pressed', 'false'); $('search-input').value = ''; setFilter('all'); $('search-input').focus(); });
+  $('search-filters').addEventListener('click', event => {
+    const b = event.target.closest('[data-filter]');
+    if (b) { setFilter(b.dataset.filter); return; }
+    if (event.target.closest('[data-past]')) {
+      showPast = !showPast; shown = PAGE;
+      document.querySelector('#search-filters [data-past]').setAttribute('aria-pressed', String(showPast));
+      renderSearch();
+    }
+  });
   $('search-results').addEventListener('click', event => { if (event.target.closest('#search-more')) { shown += PAGE; renderSearch(); } });
 
   let loading = false, started = false;

@@ -289,7 +289,7 @@ console.log('PASS: Cloudflare runtime config, admin session security and permiss
   assert.equal(isTime(exam, at('10:30')), true, 'during the exam');
   assert.equal(isTime(exam, at('12:00')), false, 'after the exam');
   assert.equal(isTime({ ...exam, type: 'class' }, at('09:50')), false, 'classes do not trigger it');
-  assert.ok(read('js/room.js').includes('LHC_CHEER.maybeShow(ev, Store.bookmarks.has(ev.id))'), 'only bookmarked exams');
+  assert.ok(read('js/room.js').includes('LHC_CHEER.maybeShow(ev, Store.bookmarks.has(ev.id)'), 'only bookmarked exams');
   console.log('PASS: all-the-best popup timing');
 }
 
@@ -302,3 +302,20 @@ console.log('PASS: Cloudflare runtime config, admin session security and permiss
   assert.ok(fs.existsSync(path.join(root, 'icons/cheer-cat.png')) && read('js/cheer.js').includes("icons/cheer-cat.png"), 'popup uses the cat picture');
   console.log('PASS: phone layout guards');
 }
+
+// Seat shown to the person who marked it; past events hidden on the home screen by default.
+(async () => {
+  const values = new Map();
+  const localStorage = { getItem: k => (values.has(k) ? values.get(k) : null), setItem: (k, v) => values.set(k, String(v)), removeItem: k => values.delete(k) };
+  const ctx = { window: { addEventListener() {} }, localStorage, console };
+  vm.runInNewContext(read('js/store.js'), ctx);
+  const Store = ctx.window.LHC_STORE;
+  assert.deepEqual(Array.from(Store.mySeats('e1')), [], 'no seat yet');
+  await Store.book('e1', '45', 'Asha'); await Store.book('e1', '7', 'Asha'); await Store.book('e2', '99', 'Ravi');
+  assert.deepEqual(Array.from(Store.mySeats('e1')), ['7', '45'], 'own seats for that exam only, in number order');
+  const home = read('js/home.js');
+  assert.ok(home.includes('showPast = false') && home.includes('showPastMine = false'), 'past events start hidden on the home screen');
+  assert.ok(read('index.html').includes('data-past'), 'home has a Show past toggle');
+  assert.ok(home.includes('Store.mySeats') && read('js/room.js').includes('Your seat:') && read('js/cheer.js').includes('Your seat:'), 'seat number shown in lists, the classroom footer and the popup');
+  console.log('PASS: own seat shown for exams; past events hidden by default');
+})().catch(error => { console.error(error); process.exitCode = 1; });
