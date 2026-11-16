@@ -249,7 +249,8 @@ console.log('PASS: Cloudflare runtime config, admin session security and permiss
   assert.ok(roomJs.includes('/api/admin/session') && roomJs.includes('session.canAdd'), 'the + Event button follows who may add events');
   assert.ok(roomJs.includes('PHONE_READABLE') && roomJs.includes('showWhole'), 'phones open at a readable zoom with a whole-room toggle');
   assert.ok(read('room.html').includes('id="day-strip"') && read('room.html').includes('id="month-btn"'), 'room page has the phone day strip');
-  assert.ok(read('index.html').includes('id="search-input"') && read('index.html').includes('id="coming-up"') && read('index.html').includes('id="next-exams"'), 'home has search and upcoming sections');
+  assert.ok(/<html[^>]*class="light-only"/.test(read('interactive-map.html')) && /:root:not\(\.light-only\)/.test(read('css/styles.css')), 'the interactive map page always uses the light colours');
+  assert.ok(read('index.html').includes('id="search-input"') && !read('index.html').includes('coming-up') && !read('index.html').includes('next-exams'), 'home has search and no coming-up / upcoming-exams lists');
   assert.ok(roomJs.includes('touchmove') && roomJs.includes('ctrlKey'), 'pinch and ctrl-scroll zoom');
   assert.ok(homeJs.includes('Classes') && homeJs.includes('Exams') && homeJs.includes('data-class-date'), 'My events: classes by date, exams listed');
   for (const id of ['mode-options', 'coadmin-form', 'coadmin-list', 'detail-edit', 'calendar', 'guest-continue']) assert.ok(adminHtml.includes(`id="${id}"`), `admin page has ${id}`);

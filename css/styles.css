@@ -18,7 +18,7 @@
   --seat-w: 32px; --seat-h: 30px; --gap: 5px; --row-gap: 5px; --aisle-w: 26px; --gutter-w: 64px;
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not(.light-only) {
     --bg: #121214; --surface: #1b1b1e; --soft: #242428;
     --ink: #ececee; --muted: #a2a2ab;
     --line: #2f2f35; --line-strong: #4b4b54;
@@ -34,6 +34,7 @@
   }
 }
 
+html.light-only { color-scheme: light; }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; background: var(--bg); }
@@ -123,8 +124,6 @@ dialog h2 { font-size: 18px; }
 .result-list .my-title, .result-list .my-meta { white-space: normal; overflow-wrap: anywhere; }
 .result-list .my-open { min-height: 60px; }
 .more-btn { width: 100%; margin-top: 10px; min-height: 44px; }
-.home-block { margin-top: 32px; }
-.see-all { margin-top: 6px; color: var(--accent); }
 .my-events { margin-top: 36px; }
 .my-events .section-title { display: flex; align-items: center; gap: 8px; }
 .my-events .section-title svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
@@ -369,7 +368,6 @@ body.room-page #toast { bottom: 140px; }
   :root { --gap: 4px; --row-gap: 4px; --aisle-w: 24px; --gutter-w: 54px; }
   h1 { font-size: 24px; }
   .shell { padding: 20px 14px 44px; }
-  .home-block { margin-top: 26px; }
   .my-events { margin-top: 28px; }
   .my-open { min-height: 56px; }
   .site-bar-inner { flex-wrap: wrap; gap: 6px; padding: 10px 14px 8px; }

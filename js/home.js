@@ -84,7 +84,7 @@
   const addDays = (iso, n) => { const d = parseDate(iso); d.setDate(d.getDate() + n); return isoOf(d); };
   const norm = value => String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
   const PAGE = 30;
-  let all = [], loaded = false, failed = false, filter = 'all', browse = false, query = '', shown = PAGE, timer = 0;
+  let all = [], loaded = false, failed = false, filter = 'all', query = '', shown = PAGE, timer = 0;
 
   // One lowercase string per event with the words people search by: course, hall, teacher, type, weekday, date, time.
   function hay(e) {
@@ -122,7 +122,7 @@
   }
 
   function renderSearch() {
-    const active = Boolean(query.trim()) || browse;
+    const active = Boolean(query.trim());
     $('home-sections').hidden = active;
     $('search-hint').hidden = active;
     $('search-filters').hidden = !active;
@@ -144,14 +144,6 @@
       const n = loaded ? all.filter(e => e.roomId === el.dataset.todayRoom && e.date === t).length : -1;
       el.textContent = n < 0 ? '' : n ? ` · ${n} today` : ' · nothing today';
     });
-    const block = (el, id, title, events, seeAll) => {
-      el.hidden = !events.length;
-      if (!events.length) { el.innerHTML = ''; return; }
-      el.innerHTML = `<h2 class="section-title" id="${id}">${title}</h2><ul class="my-list result-list">${events.map(resultRow).join('')}</ul>${seeAll ? `<button type="button" class="btn quiet see-all" data-see="${seeAll}">See all ${seeAll === 'exam' ? 'exams' : 'classes'}</button>` : ''}`;
-    };
-    const upcoming = all.filter(isUpcoming).sort(byWhen);
-    block($('coming-up'), 'coming-title', 'Coming up', upcoming.filter(e => typeOf(e.type) !== 'exam').slice(0, 5), 'class');
-    block($('next-exams'), 'exams-title', 'Upcoming exams', upcoming.filter(e => typeOf(e.type) === 'exam').slice(0, 5), 'exam');
   }
   function renderEvents() { renderHomeSections(); renderSearch(); }
 
@@ -165,13 +157,9 @@
     timer = setTimeout(() => { query = event.target.value; shown = PAGE; renderSearch(); }, 120);
   });
   $('search-input').addEventListener('keydown', event => { if (event.key === 'Escape') $('search-clear').click(); });
-  $('search-clear').addEventListener('click', () => { query = ''; browse = false; $('search-input').value = ''; setFilter('all'); $('search-input').focus(); });
+  $('search-clear').addEventListener('click', () => { query = ''; $('search-input').value = ''; setFilter('all'); $('search-input').focus(); });
   $('search-filters').addEventListener('click', event => { const b = event.target.closest('[data-filter]'); if (b) setFilter(b.dataset.filter); });
   $('search-results').addEventListener('click', event => { if (event.target.closest('#search-more')) { shown += PAGE; renderSearch(); } });
-  $('home-sections').addEventListener('click', event => {
-    const see = event.target.closest('[data-see]');
-    if (see) { browse = true; setFilter(see.dataset.see); window.scrollTo({ top: 0 }); }
-  });
 
   let loading = false, started = false;
   async function loadAll() {

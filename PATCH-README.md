@@ -13,7 +13,7 @@ Supabase SQL (run in the SQL editor, only when you want them):
 
 What changed
 - Plain, flat look; simple top menu; plain seat map.
-- Home: search for classes and exams, Coming up, Upcoming exams, today's count per classroom.
+- Home: search for classes and exams; today's count per classroom.
 - Phones: month + day-tile strip for dates; seat map opens at a readable size (fit button shows the whole room).
 - Full event names everywhere (no cut-off text).
 - Admin weekly calendar styling repaired; adding an event that clashes now lists the clash and lets the admin replace it.
