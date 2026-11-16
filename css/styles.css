@@ -12,13 +12,11 @@
   --other: #6d3fc4; --other-soft: #efe9fb;
   --stairs: #e8eaee; --scrim: rgba(0, 0, 0, .45);
   --seat-line: #aab0ba; --seat-ink: #2b2f36; --seat-taken: #e3e5e9; --board: #3b4048;
-  --fp-bg: #ffffff; --fp-floor: #eef0f3; --fp-service: #e8eaee; --fp-room: #ffffff; --fp-room-hover: #e7eeff;
-  --fp-a: #ffffff; --fp-b: #ffffff; --fp-c: #ffffff; --fp-wash: #e8eaee;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --seat-w: 32px; --seat-h: 30px; --gap: 5px; --row-gap: 5px; --aisle-w: 26px; --gutter-w: 64px;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not(.light-only) {
+  :root {
     --bg: #121214; --surface: #1b1b1e; --soft: #242428;
     --ink: #ececee; --muted: #a2a2ab;
     --line: #2f2f35; --line-strong: #4b4b54;
@@ -29,12 +27,9 @@
     --other: #b8a6f5; --other-soft: #2a2440;
     --stairs: #26262b; --scrim: rgba(0, 0, 0, .65);
     --seat-line: #5a5a64; --seat-ink: #e3e3e7; --seat-taken: #2a2a2f; --board: #3a3a42;
-    --fp-bg: #1b1b1e; --fp-floor: #232327; --fp-service: #2a2a2f; --fp-room: #1b1b1e; --fp-room-hover: #1f2b47;
-    --fp-a: #1b1b1e; --fp-b: #1b1b1e; --fp-c: #1b1b1e; --fp-wash: #2a2a2f;
   }
 }
 
-html.light-only { color-scheme: light; }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; background: var(--bg); }
@@ -153,28 +148,30 @@ dialog h2 { font-size: 18px; }
 [aria-pressed="true"] > svg { fill: currentColor; }
 
 /* ---------- floor plan page ---------- */
-.map-card { overflow-x: auto; margin-top: 18px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+/* The map keeps the colours of the printed floor plan in light and dark mode; the rest of the page follows the device. */
+.map-card { --m-board: #ffffff; --m-lobby: #e4e5e8; --m-stairs: #f1f2f4; --m-edge: #c9c3c7; --m-ink: #2b2540; --m-sub: #4b4561;
+  --m-a: #f2f0d0; --m-b: #ebdad5; --m-c: #e4d6dd; --m-wash: #cde0cf; --m-lift: #dd4b5b; --m-hover: #dbe6ff;
+  overflow-x: auto; margin-top: 18px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--m-board); }
 .lhc-map-svg { display: block; width: 100%; min-width: 640px; height: auto; }
 .room-hit { cursor: pointer; }
 .room-hit:focus { outline: none; }
-.room-hit:hover .room-shape, .room-hit:focus-visible .room-shape { fill: var(--fp-room-hover); stroke: var(--accent); stroke-width: 3; }
-.fp-bg { fill: var(--fp-bg); stroke: var(--line); stroke-width: 2; }
-.fp-floor { fill: var(--fp-floor); }
-.fp-lobby, .fp-service { fill: var(--fp-service); stroke: var(--line-strong); stroke-width: 1.5; }
-.room-shape { fill: var(--fp-room); stroke: var(--line-strong); stroke-width: 2; }
-.fp-name { fill: var(--ink); font: 600 34px var(--sans); pointer-events: none; }
-.fp-cap { fill: var(--muted); font: 400 22px var(--sans); pointer-events: none; }
-.fp-label { fill: var(--muted); font: 500 22px var(--sans); }
-.fp-sign { fill: var(--muted); font: 700 16px var(--sans); letter-spacing: .1em; }
-.fp-lift { fill: var(--muted); }
-.fp-door { fill: none; stroke: var(--line-strong); stroke-width: 2; stroke-linecap: round; pointer-events: none; }
-.fp-lift-text { fill: var(--surface); font: 700 12px var(--sans); letter-spacing: .05em; pointer-events: none; }
-.fp-wash { fill: var(--fp-wash); stroke: var(--line-strong); stroke-width: 1.5; }
-.room-shape.tone-a { fill: var(--fp-a); }
-.room-shape.tone-b { fill: var(--fp-b); }
-.room-shape.tone-c { fill: var(--fp-c); }
-.room-hit:hover .room-shape.tone-a, .room-hit:hover .room-shape.tone-b, .room-hit:hover .room-shape.tone-c,
-.room-hit:focus-visible .room-shape.tone-a, .room-hit:focus-visible .room-shape.tone-b, .room-hit:focus-visible .room-shape.tone-c { fill: var(--fp-room-hover); }
+.fp-bg { fill: var(--m-board); stroke: var(--m-edge); stroke-width: 2; }
+.fp-floor { fill: #ffffff; stroke: var(--m-edge); stroke-width: 1.5; }
+.fp-lobby { fill: var(--m-lobby); stroke: var(--m-edge); stroke-width: 1.5; }
+.fp-service { fill: var(--m-stairs); stroke: var(--m-edge); stroke-width: 1.5; }
+.room-shape { stroke: var(--m-edge); stroke-width: 1.5; }
+.room-shape.tone-a { fill: var(--m-a); }
+.room-shape.tone-b { fill: var(--m-b); }
+.room-shape.tone-c { fill: var(--m-c); }
+.room-hit:hover .room-shape, .room-hit:focus-visible .room-shape { fill: var(--m-hover); stroke: #1d4ed8; stroke-width: 3; }
+.fp-name { fill: var(--m-ink); font: 600 34px var(--sans); pointer-events: none; }
+.fp-cap { fill: var(--m-sub); font: 400 22px var(--sans); pointer-events: none; }
+.fp-label { fill: var(--m-ink); font: 500 22px var(--sans); }
+.fp-sign { fill: var(--m-ink); font: 700 16px var(--sans); letter-spacing: .1em; }
+.fp-lift { fill: var(--m-lift); }
+.fp-lift-text { fill: #ffffff; font: 700 12px var(--sans); letter-spacing: .05em; pointer-events: none; }
+.fp-door { fill: none; stroke: var(--m-edge); stroke-width: 2; stroke-linecap: round; pointer-events: none; }
+.fp-wash { fill: var(--m-wash); stroke: var(--m-edge); stroke-width: 1.5; }
 
 /* ---------- classroom page ---------- */
 body.room-page { display: flex; flex-direction: column; min-height: 0; height: 100vh; height: 100dvh; overflow: hidden; }
