@@ -17,9 +17,9 @@ const shim = `window.supabase = { createClient() { return {
   channel() { const c = { on() { return c; }, subscribe() { return c; } }; return c; },
   from(table) {
     const filters = [], orders = []; let op = 'select', payload;
-    const q = { select() { return q; }, eq(c, v) { filters.push([c, v]); return q; }, order(c) { orders.push(c); return q; }, insert(row) { op = 'insert'; payload = row; return q; }, then(res, rej) { return run().then(res, rej); } };
+    const q = { select() { return q; }, eq(c, v) { filters.push([c, 'eq.' + v]); return q; }, in(c, vs) { filters.push([c, 'in.(' + vs.join(',') + ')']); return q; }, order(c) { orders.push(c); return q; }, insert(row) { op = 'insert'; payload = row; return q; }, then(res, rej) { return run().then(res, rej); } };
     async function run() {
-      const params = new URLSearchParams(); filters.forEach(([c, v]) => params.append(c, 'eq.' + v)); if (orders.length) params.set('order', orders.map(o => o + '.asc').join(','));
+      const params = new URLSearchParams(); filters.forEach(([c, expr]) => params.append(c, expr)); if (orders.length) params.set('order', orders.map(o => o + '.asc').join(','));
       const r = await fetch('/__dev/rest/' + table + '?' + params, { method: op === 'insert' ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json' }, body: op === 'insert' ? JSON.stringify([].concat(payload)) : undefined });
       const data = await r.json().catch(() => null);
       return r.ok ? { data, error: null } : { data: null, error: data || { message: 'error' } };
@@ -44,6 +44,8 @@ async function seed() {
   add('lhc-kaumudi', 1, 'Physics Lab Briefing', 'other', '15:00', '16:00');
   add('lhc-kaumudi', 3, 'Mid-semester Mathematics', 'exam', '10:00', '12:00');
   add('lhc-kaumudi', 5, 'Mid-semester Chemistry', 'exam', '14:00', '16:00');
+  add('lhc-jupiter', 3, 'HUM 212', 'exam', '14:00', '17:00', 'Dr Rao');                       // two courses sharing one hall at the same time
+  add('lhc-jupiter', 3, 'I2M 411 / MAT 4511', 'exam', '14:00', '17:00', 'Prof Manna');
   add('lhc-venus', 2, 'Biology 101', 'class', '09:30', '10:30', 'Dr Pillai');
 }
 

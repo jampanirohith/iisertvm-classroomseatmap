@@ -331,6 +331,26 @@ console.log('PASS: Cloudflare runtime config, admin session security and permiss
   console.log('PASS: own seat shown for exams; past events hidden by default');
 })().catch(error => { console.error(error); process.exitCode = 1; });
 
+// Exams of different courses can share a hall at the same time: they share the seats, so marks made for either show up in both.
+(async () => {
+  const values = new Map();
+  const localStorage = { getItem: k => (values.has(k) ? values.get(k) : null), setItem: (k, v) => values.set(k, String(v)), removeItem: k => values.delete(k) };
+  const ctx = { window: { addEventListener() {} }, localStorage, console };
+  vm.runInNewContext(read('js/store.js'), ctx);
+  const Store = ctx.window.LHC_STORE;
+  await Store.book('hum', '12', 'Asha'); await Store.book('i2m', '30', 'Ravi'); await Store.book('other-hall', '12', 'Zoe');
+  const alongside = [{ id: 'i2m', title: 'I2M 411/MAT 4511' }];
+  const seen = plain(await Store.listBookings('hum', alongside));
+  assert.deepEqual(seen['12'], { name: 'Asha', mine: true }, 'own mark');
+  assert.deepEqual(seen['30'], { name: 'Ravi', mine: false, other: 'I2M 411/MAT 4511' }, 'the other course\'s mark, labelled with its course');
+  assert.deepEqual(Object.keys(seen).sort(), ['12', '30'], 'exams in other halls or at other times are not mixed in');
+  assert.deepEqual(plain(await Store.listBookings('hum')), { 12: { name: 'Asha', mine: true } }, 'an exam on its own shows only its own marks');
+  const room = read('js/room.js'), cal = read('js/week-calendar.js');
+  assert.ok(room.includes('const alongside =') && room.includes('alongside(ev)') && room.includes('taken.other'), 'room page loads and explains marks from exams in the same hall');
+  assert.ok(cal.includes('lanes.set') && cal.includes('width:calc(${100 / place.of}%'), 'week view puts overlapping events side by side');
+  console.log('PASS: exams sharing a hall share one seat map');
+})().catch(error => { console.error(error); process.exitCode = 1; });
+
 // Phones: the dates and events can be pulled up to show the whole classroom.
 {
   const room = read('room.html'), js = read('js/room.js'), css = read('css/styles.css');

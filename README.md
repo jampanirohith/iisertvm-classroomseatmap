@@ -33,7 +33,7 @@ Sign in at `admin.html`. The **Schedule** tab is a weekly calendar (Monday to Su
 - Click an event for its details, then **Edit** or **Delete**.
 - **Drag an event** (mouse) to another time or day to reschedule it. On touch screens, use **Edit**.
 - Classes can repeat weekly or on chosen weekdays; each occurrence is a separate event you can edit or delete on its own.
-- Two events in the same classroom cannot overlap (back-to-back is fine). If a new event clashes, the form lists what is in the way and the admin can replace those events with one click.
+- Classes and other events need the classroom to themselves (back-to-back is fine). Exams of different courses can share a classroom at the same time: the week view shows them side by side and they share one seat map. An exam can never overlap a class. If a new event clashes, the form lists what is in the way and the admin can replace those events with one click.
 
 ### Settings (admin only)
 
@@ -54,15 +54,20 @@ Sign in at `admin.html`. The **Schedule** tab is a weekly calendar (Monday to Su
 | Names: Everyone (default) | Tapping a marked seat shows who marked it |
 | Names: Only the person who marked it | Other students see the seat as marked, without a name |
 
-Seat marking is enforced by the database once `supabase/schema.sql` has been run again. The name setting is applied by the website, so it keeps names out of the page for other students but is not a lock on the database itself.
+When two exams share a classroom at the same time, a seat marked for one is taken for the other too (tapping it says "Marked by Asha for HUM 212"). Seat marking is enforced by the database once `supabase/schema.sql` has been run again. The name setting is applied by the website, so it keeps names out of the page for other students but is not a lock on the database itself.
 
 **Co-admins.** Add an email and a password for each person, share the password with them directly, and they sign in from the **Co-admin** tab. You can reset a password or remove a co-admin at any time; either one signs them out immediately.
 
 The **+ Event** button on a classroom page appears only for people who may add events right now. Visitors who cannot add never see it.
 
+## Loading timetables
+
+- `supabase/schedule.sql` is the Varsha 2026 class timetable and `supabase/exams.sql` the mid-sem and end-sem exams (one event per course per hall; codes joined by "/" in a seating plan are one course, shown as `DSC 323 / MAT 314 / MSM 405`). Both only replace their own kind of event, keep events that are already right (so bookmarks and seat marks survive) and are safe to run again. `exams.sql` also installs the room rules, so two exams can share a hall.
+- `supabase/courses.md` lists every course code of the three catalogues and the 2026 timetables, with the codes that are one course grouped together. `supabase/timetable-command.md` is a prompt to give any AI together with a timetable PDF and `courses.md`: it returns the SQL for Supabase. Neither file is served on the website.
+
 ## Setup (Cloudflare Pages + Supabase)
 
-1. Create a Supabase project. In the SQL editor run `supabase/schema.sql`, then `supabase/seed.sql`. If you already have a database, run `schema.sql` again: it only adds what is missing (the `created_by` column, `app_settings`, `coadmins`, the exam-only seat guard and the no-overlap rule).
+1. Create a Supabase project. In the SQL editor run `supabase/schema.sql`, then `supabase/seed.sql`. If you already have a database, run `schema.sql` again: it only adds what is missing (the `created_by` column, `app_settings`, `coadmins`, the exam-only seat guard and the room rules: no overlap for classes, exams of different courses may share a hall).
 2. In Cloudflare Pages, add these for Production:
 
 | Name | Type | Value |

@@ -13,6 +13,8 @@ function validDate(value) {
 function validTime(value) { return /^([01]\d|2[0-3]):[0-5]\d$/.test(String(value || '')); }
 function time5(value) { return String(value || '').slice(0, 5); }
 function timeOverlap(a, b) { return a.start < time5(b.end_time || b.end) && a.end > time5(b.start_time || b.start); }
+// Exams of different courses can share a hall at the same time; everything else needs the room to itself.
+const sideBySide = (typeA, typeB) => typeA === 'exam' && typeB === 'exam';
 
 function publicError(result) {
   if (!result.response) return jsonResponse({ error: result.error || 'Supabase is not configured.' }, 503);
@@ -73,14 +75,14 @@ async function handlePost(request, env, actor) {
     const event = normalized[i];
     for (let j = 0; j < i; j++) {
       const previous = normalized[j];
-      if (previous.event_date === event.event_date && event.start_time < previous.end_time && event.end_time > previous.start_time) {
+      if (previous.event_date === event.event_date && !sideBySide(event.event_type, previous.event_type) && event.start_time < previous.end_time && event.end_time > previous.start_time) {
         return jsonResponse({ error: 'The submitted sessions overlap each other. Check the repeat pattern and times.' }, 409);
       }
     }
   }
   const dates = normalized.map(event => event.event_date).sort();
   const range = new URLSearchParams({
-    select: 'id,title,event_date,start_time,end_time',
+    select: 'id,title,event_type,event_date,start_time,end_time',
     room_id: `eq.${roomId}`,
     and: `(event_date.gte.${dates[0]},event_date.lte.${dates[dates.length - 1]})`
   });
@@ -90,7 +92,7 @@ async function handlePost(request, env, actor) {
   const conflicts = new Map();
   for (const event of normalized) {
     for (const previous of existing) {
-      if (previous.event_date === event.event_date && timeOverlap({ start: event.start_time, end: event.end_time }, previous)) {
+      if (previous.event_date === event.event_date && !sideBySide(event.event_type, previous.event_type) && timeOverlap({ start: event.start_time, end: event.end_time }, previous)) {
         conflicts.set(previous.id, { id: previous.id, title: previous.title, date: previous.event_date, start: time5(previous.start_time), end: time5(previous.end_time) });
       }
     }
@@ -162,9 +164,9 @@ async function handlePatch(request, env, url, actor) {
   if (!row) return jsonResponse({ error: 'That event no longer exists. Refresh the calendar.' }, 404);
   if (!canModify(actor, await getMode(env), row)) return jsonResponse({ error: 'You can only edit events you created, and only while co-admins may add events.' }, 403);
 
-  const sameDay = await databaseRequest(env, `events?${new URLSearchParams({ select: 'id,title,start_time,end_time', room_id: `eq.${roomId}`, event_date: `eq.${clean.event_date}` })}`);
+  const sameDay = await databaseRequest(env, `events?${new URLSearchParams({ select: 'id,title,event_type,start_time,end_time', room_id: `eq.${roomId}`, event_date: `eq.${clean.event_date}` })}`);
   if (sameDay.error) return publicError(sameDay);
-  const conflict = (Array.isArray(sameDay.data) ? sameDay.data : []).find(other => other.id !== eventId && timeOverlap({ start: clean.start_time, end: clean.end_time }, other));
+  const conflict = (Array.isArray(sameDay.data) ? sameDay.data : []).find(other => other.id !== eventId && !sideBySide(clean.event_type, other.event_type) && timeOverlap({ start: clean.start_time, end: clean.end_time }, other));
   if (conflict) return jsonResponse({ error: `That time overlaps another event in this classroom (${conflict.title}).`, conflicts: [{ id: conflict.id, title: conflict.title, date: clean.event_date, start: time5(conflict.start_time), end: time5(conflict.end_time) }] }, 409);
 
   const result = await databaseRequest(env, `events?${new URLSearchParams({ ...filter, select: COLUMNS })}`, {

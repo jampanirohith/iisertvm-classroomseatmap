@@ -89,22 +89,48 @@ begin
   if exists (select 1 from public.app_settings s where s.key = 'seat_marking' and s.value = 'off') then
     raise exception 'Seat marking is turned off' using errcode = '22023';
   end if;
+  -- Exams of different courses can share a hall at the same time, so they share its seats: one mark per seat.
+  perform pg_advisory_xact_lock(hashtextextended('seat:' || (select e.room_id || ':' || e.event_date from public.events e where e.id = new.event_id) || ':' || new.seat_id, 0));
+  if exists (
+    select 1
+    from public.events me
+    join public.events other on other.room_id = me.room_id and other.id <> me.id and other.event_type = 'exam'
+      and other.event_date = me.event_date and other.start_time < me.end_time and other.end_time > me.start_time
+    join public.seat_marks m on m.event_id = other.id and m.seat_id = new.seat_id
+    where me.id = new.event_id
+  ) then
+    raise exception 'That seat is already marked for another exam in this hall' using errcode = '23505';
+  end if;
   new.display_name := left(btrim(new.display_name), 30);
   return new;
 end $$;
 drop trigger if exists seat_marks_guard on public.seat_marks;
 create trigger seat_marks_guard before insert on public.seat_marks for each row execute function public.seat_marks_guard();
 
--- Two events in the same classroom can never overlap, even if two people save at the same moment.
--- Back-to-back events (10:00-11:00 and 11:00-12:00) are allowed. Skipped with a notice if old data already overlaps.
+-- Classes and other events need their classroom to themselves: two of them can never overlap, even if two people save at the
+-- same moment, and an exam cannot overlap them either. Exams of different courses may share a hall at the same time (they
+-- share its seats). Back-to-back events (10:00-11:00 and 11:00-12:00) are allowed.
+-- Skipped with a notice if old data already breaks a rule. Safe to run again.
 create extension if not exists btree_gist;
+alter table public.events drop constraint if exists events_no_overlap_per_room;
+alter table public.events drop constraint if exists events_exam_apart_from_others;
 do $$
 begin
   alter table public.events add constraint events_no_overlap_per_room
-    exclude using gist (room_id with =, tsrange(event_date + start_time, event_date + end_time, '[)') with &&);
+    exclude using gist (room_id with =, tsrange(event_date + start_time, event_date + end_time, '[)') with &&)
+    where (event_type <> 'exam');
 exception
   when duplicate_object then null;
   when others then raise notice 'events_no_overlap_per_room was not added: %', sqlerrm;
+end $$;
+do $$
+begin
+  alter table public.events add constraint events_exam_apart_from_others
+    exclude using gist (room_id with =, tsrange(event_date + start_time, event_date + end_time, '[)') with &&,
+                        (case when event_type = 'exam' then 1 else 0 end) with <>);
+exception
+  when duplicate_object then null;
+  when others then raise notice 'events_exam_apart_from_others was not added: %', sqlerrm;
 end $$;
 
 -- Admin settings and co-admin accounts. Only the Cloudflare admin functions (secret key) can touch these:

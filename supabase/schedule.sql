@@ -1,7 +1,8 @@
 -- IISER TVM Lecture Hall Complex: Varsha 2026 class schedule (all four years).
--- Run in the Supabase SQL editor. It DELETES every existing event (and the exam seat marks
--- attached to them), then adds the full semester timetable for the five classrooms.
--- Safe to run again: it always starts by clearing events.
+-- Run in the Supabase SQL editor. It makes the class events of the semester (27 Jul - 17 Nov 2026) match the
+-- timetable below: classes that are already right are kept (so bookmarks stay), classes that are not in the
+-- timetable are removed, missing ones are added. Exams and other events are never touched.
+-- Safe to run again.
 --
 -- Source: the 1st-4th year timetables and the Academic Calendar - Varsha 2026.
 --   Classes start Mon 27 Jul 2026 and end Tue 17 Nov 2026 (end-sem exams start Wed 18 Nov).
@@ -14,8 +15,7 @@
 
 begin;
 
-delete from public.events;
-
+create temp table new_classes on commit drop as
 with
 terms(grp, first_day, last_day) as (values
   ('main',  date '2026-07-27', date '2026-11-17'),
@@ -144,11 +144,26 @@ days as (
   from generate_series(timestamp '2026-07-27', timestamp '2026-11-17', interval '1 day') g
   where not exists (select 1 from no_class n where g::date between n.from_day and n.to_day)
 )
-insert into public.events (room_id, title, event_type, event_date, start_time, end_time, created_by)
-select w.room_id, w.title, 'class', d.day, w.start_time::time, w.end_time::time, 'admin'
+select distinct w.room_id, w.title, d.day as event_date, w.start_time::time as start_time, w.end_time::time as end_time
 from days d
 join weekly w on w.dow = d.dow
 join terms t on t.grp = w.grp and d.day between t.first_day and t.last_day;
+
+-- Remove the classes of the semester that are not in the timetable above.
+delete from public.events e
+where e.event_type = 'class'
+  and e.event_date between date '2026-07-27' and date '2026-11-17'
+  and not exists (select 1 from new_classes n
+                  where n.room_id = e.room_id and n.title = e.title and n.event_date = e.event_date
+                    and n.start_time = e.start_time and n.end_time = e.end_time);
+
+-- Add the classes that are missing.
+insert into public.events (room_id, title, event_type, event_date, start_time, end_time, created_by)
+select n.room_id, n.title, 'class', n.event_date, n.start_time, n.end_time, 'admin'
+from new_classes n
+where not exists (select 1 from public.events e
+                  where e.event_type = 'class' and e.room_id = n.room_id and e.title = n.title and e.event_date = n.event_date
+                    and e.start_time = n.start_time and e.end_time = n.end_time);
 
 commit;
 

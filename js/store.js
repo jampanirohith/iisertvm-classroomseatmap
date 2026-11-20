@@ -143,18 +143,28 @@
     },
 
     // Returns { [seatId]: { name, mine } } for one event.
-    async listBookings(eventId) {
+    // Marks for one exam. `alongside` lists other exams in the same hall at the same time ({ id, title }): the seats
+    // are the same physical seats, so their marks show up too, flagged with the course they belong to.
+    async listBookings(eventId, alongside = []) {
+      const ids = [String(eventId), ...alongside.map(x => String(x.id))];
       let rows;
       if (client) {
-        const { data, error } = await client.from('seat_marks').select('seat_id,display_name').eq('event_id', eventId);
+        const { data, error } = await client.from('seat_marks').select('event_id,seat_id,display_name').in('event_id', ids);
         if (error) throw error;
-        rows = data.map(r => ({ seat: r.seat_id, name: r.display_name }));
+        rows = data.map(r => ({ event: String(r.event_id), seat: r.seat_id, name: r.display_name }));
       } else {
-        const prefix = `${eventId}::`;
-        rows = Object.entries(read(K.bookings, {})).filter(([k]) => k.startsWith(prefix)).map(([k, v]) => ({ seat: k.slice(prefix.length), name: v.name }));
+        const all = read(K.bookings, {});
+        rows = ids.flatMap(id => Object.entries(all).filter(([k]) => k.startsWith(`${id}::`)).map(([k, v]) => ({ event: id, seat: k.slice(id.length + 2), name: v.name })));
       }
       const mine = new Set(read(K.mine, []));
-      return Object.fromEntries(rows.map(r => [r.seat, { name: r.name, mine: mine.has(bookingKey(eventId, r.seat)) }]));
+      const title = Object.fromEntries(alongside.map(x => [String(x.id), x.title]));
+      const out = {};
+      for (const r of rows.filter(r => r.event !== String(eventId)).concat(rows.filter(r => r.event === String(eventId)))) {
+        out[r.seat] = r.event === String(eventId)
+          ? { name: r.name, mine: mine.has(bookingKey(eventId, r.seat)) }
+          : { name: r.name, mine: false, other: title[r.event] || 'another exam' };
+      }
+      return out;
     },
 
     async book(eventId, seatId, name) {

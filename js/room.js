@@ -391,10 +391,12 @@
     state.events = (await Store.listEvents(room.id)).sort((a, b) => when(a).localeCompare(when(b)));
     try { Store.bookmarks.sync(room.id, state.events); } catch (error) { console.error(error); }
   }
+  // Other exams in this hall at the same time (different courses sharing the room).
+  const alongside = ev => state.events.filter(o => o.type === 'exam' && o.id !== ev.id && o.date === ev.date && o.start < ev.end && o.end > ev.start).map(o => ({ id: o.id, title: o.title }));
   async function loadBookings() {
     const ev = currentEvent();
     if (ev && ev.type === 'exam') state.rules = await Store.seatSettings();
-    state.bookings = ev && ev.type === 'exam' ? await Store.listBookings(ev.id) : {};
+    state.bookings = ev && ev.type === 'exam' ? await Store.listBookings(ev.id, alongside(ev)) : {};
   }
   async function refreshBookings() { await loadBookings(); renderFoot(); renderHall(); refit(); }
   async function selectEvent(id) {
@@ -458,7 +460,8 @@
     if (taken) {   // a marked seat: show who marked it (names can be limited to the person who marked it)
       $('info-no').textContent = btn.dataset.seat;
       const name = shownName(taken);
-      $('info-line').innerHTML = taken.mine ? `Marked by <b>${esc(name || 'you')}</b> (you)` : name ? `Marked by <b>${esc(name)}</b>` : 'Marked by another student';
+      const course = taken.other ? ` <span class="muted">for ${esc(taken.other)}</span>` : '';
+      $('info-line').innerHTML = (taken.mine ? `Marked by <b>${esc(name || 'you')}</b> (you)` : name ? `Marked by <b>${esc(name)}</b>` : 'Marked by another student') + course;
       $('info-event').textContent = `${ev.title} · ${dateLong(ev.date)} · ${timeLabel(ev.start)} – ${timeLabel(ev.end)}`;
       $('seat-info').showModal();
       return;
@@ -500,7 +503,7 @@
       if (state.eventId && !state.events.some(x => String(x.id) === String(state.eventId))) state.eventId = null;
       renderStrip();
       await refreshBookings();
-    } else if (change.type === 'bookings' && currentEvent()?.type === 'exam' && (!change.eventId || String(change.eventId) === String(state.eventId))) {
+    } else if (change.type === 'bookings' && currentEvent()?.type === 'exam' && (!change.eventId || String(change.eventId) === String(state.eventId) || alongside(currentEvent()).some(o => String(o.id) === String(change.eventId)))) {
       await refreshBookings();
     }
   });

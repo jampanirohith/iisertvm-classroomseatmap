@@ -59,11 +59,23 @@
       html += `<div class="cal-times" aria-hidden="true">${Array.from({ length: hours }, (_, i) => `<span style="top:${i === 0 ? '2px;transform:none' : `${i * HOUR_H}px`}">${hourLabel(from + i)}</span>`).join('')}</div>`;
       days.forEach(iso => {
         let col = '';
-        inWeek.filter(e => e.date === iso).forEach(e => {
+        const dayEvents = inWeek.filter(e => e.date === iso).sort((a, b) => F.minutes(a.start) - F.minutes(b.start) || F.minutes(a.end) - F.minutes(b.end));
+        // Events that overlap in time (exams of different courses in one hall) sit side by side.
+        const lanes = new Map(); let group = [], groupEnd = -1;
+        const closeGroup = () => { const n = group.reduce((m, g) => Math.max(m, g.lane + 1), 1); group.forEach(g => lanes.set(g.e, { lane: g.lane, of: n })); group = []; };
+        dayEvents.forEach(e => {
+          if (F.minutes(e.start) >= groupEnd) { closeGroup(); groupEnd = -1; }
+          let lane = 0;
+          while (group.some(g => g.lane === lane && F.minutes(g.e.end) > F.minutes(e.start))) lane++;
+          group.push({ e, lane }); groupEnd = Math.max(groupEnd, F.minutes(e.end));
+        });
+        closeGroup();
+        dayEvents.forEach(e => {
           const top = (F.minutes(e.start) - from * 60) * HOUR_H / 60;
           const height = Math.max(24, (F.minutes(e.end) - F.minutes(e.start)) * HOUR_H / 60 - 2);
           const type = F.typeOf(e.type);
-          col += `<button type="button" class="cal-ev" data-event="${F.esc(e.id)}" data-type="${type}" style="top:${top}px;height:${height}px" aria-label="${F.esc(e.title)}, ${F.esc(F.TYPE[type])}, ${F.esc(F.dateLong(e.date))}, ${F.esc(F.timeLabel(e.start))} to ${F.esc(F.timeLabel(e.end))}"><strong>${F.esc(e.title)}</strong><span>${F.esc(F.timeRange(e.start, e.end))}</span>${e.professor && height > 62 ? `<span>${F.esc(e.professor)}</span>` : ''}</button>`;
+          const place = lanes.get(e), side = place && place.of > 1 ? `;left:calc(${place.lane * 100 / place.of}% + 2px);right:auto;width:calc(${100 / place.of}% - 6px)` : '';
+          col += `<button type="button" class="cal-ev" data-event="${F.esc(e.id)}" data-type="${type}" style="top:${top}px;height:${height}px${side}" title="${F.esc(e.title)}" aria-label="${F.esc(e.title)}, ${F.esc(F.TYPE[type])}, ${F.esc(F.dateLong(e.date))}, ${F.esc(F.timeLabel(e.start))} to ${F.esc(F.timeLabel(e.end))}"><strong>${F.esc(e.title)}</strong><span>${F.esc(F.timeRange(e.start, e.end))}</span>${e.professor && height > 62 ? `<span>${F.esc(e.professor)}</span>` : ''}</button>`;
         });
         if (iso === today && nowMin >= from * 60 && nowMin <= to * 60) col += `<div class="cal-now" style="top:${(nowMin - from * 60) * HOUR_H / 60}px"></div>`;
         html += `<div class="cal-col" data-date="${iso}">${col}</div>`;

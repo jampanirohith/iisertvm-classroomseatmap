@@ -80,6 +80,19 @@ const ORIGIN = 'https://lhc.example';
   assert.equal((await add(adminCookie, { start: '11:00', end: '12:00', title: 'Back to back' })).status, 201, 'back-to-back events are allowed');
   assert.equal((await add(adminCookie, {}, 'lhc-venus')).status, 201, 'other rooms are independent');
 
+  // --- different courses' exams can share a hall at the same time; classes and other events still need the room to themselves
+  const exam = (extra, room = 'lhc-jupiter') => add(adminCookie, { type: 'exam', date: '2026-11-23', start: '14:00', end: '17:00', ...extra }, room);
+  assert.equal((await exam({ title: 'HUM 212' })).status, 201);
+  assert.equal((await exam({ title: 'I2M 411/MAT 4511' })).status, 201, 'two exams can share a hall at the same time');
+  assert.equal((await exam({ title: 'PHY 311', start: '15:00', end: '16:00' })).status, 201, 'also when they only partly overlap');
+  assert.equal((await add(adminCookie, { title: 'Class', date: '2026-11-23', start: '15:00', end: '16:00' }, 'lhc-jupiter')).status, 409, 'a class cannot overlap an exam');
+  assert.equal((await add(adminCookie, { title: 'Class', date: '2026-11-24', start: '10:00', end: '11:00' }, 'lhc-jupiter')).status, 201);
+  assert.equal((await exam({ title: 'CHY 211', date: '2026-11-24', start: '10:30', end: '12:00' })).status, 409, 'an exam cannot overlap a class');
+  const examPair = [event({ type: 'exam', title: 'A', date: '2026-11-25', start: '09:00', end: '12:00' }), event({ type: 'exam', title: 'B', date: '2026-11-25', start: '09:00', end: '12:00' })];
+  assert.equal((await call(events, 'POST', '/api/admin/events', { cookie: adminCookie, body: { roomId: 'lhc-venus', events: examPair } })).status, 201, 'one submission can hold exams that overlap each other');
+  const examAndClass = [event({ type: 'exam', title: 'C', date: '2026-11-26', start: '09:00', end: '12:00' }), event({ title: 'D', date: '2026-11-26', start: '10:00', end: '11:00' })];
+  assert.equal((await call(events, 'POST', '/api/admin/events', { cookie: adminCookie, body: { roomId: 'lhc-venus', events: examAndClass } })).status, 409, 'an exam and a class in one submission still clash');
+
   // --- exam seat marking rules: public read with defaults, admin-only changes, validated, other settings untouched
   const seatRules = await fn('api/seat-settings.js');
   const readRules = async () => (await seatRules.onRequestGet({ env })).json();
