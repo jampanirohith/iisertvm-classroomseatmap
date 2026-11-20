@@ -85,6 +85,10 @@ begin
   if not exists (select 1 from public.events e where e.id = new.event_id and e.event_type = 'exam') then
     raise exception 'Seats can only be marked for exams' using errcode = '22023';
   end if;
+  -- The admin can turn seat marking off (Settings tab on the admin page).
+  if exists (select 1 from public.app_settings s where s.key = 'seat_marking' and s.value = 'off') then
+    raise exception 'Seat marking is turned off' using errcode = '22023';
+  end if;
   new.display_name := left(btrim(new.display_name), 30);
   return new;
 end $$;
@@ -106,6 +110,7 @@ end $$;
 -- Admin settings and co-admin accounts. Only the Cloudflare admin functions (secret key) can touch these:
 -- no policies and no grants for the browser roles.
 -- key 'who_can_add' holds 'admin' (default), 'coadmin' or 'anyone'.
+-- key 'seat_marking' holds 'on' (default) or 'off'; key 'seat_names' holds 'everyone' (default) or 'self'.
 create table if not exists public.app_settings (
   key text primary key,
   value text not null,

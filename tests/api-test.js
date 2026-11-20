@@ -80,6 +80,22 @@ const ORIGIN = 'https://lhc.example';
   assert.equal((await add(adminCookie, { start: '11:00', end: '12:00', title: 'Back to back' })).status, 201, 'back-to-back events are allowed');
   assert.equal((await add(adminCookie, {}, 'lhc-venus')).status, 201, 'other rooms are independent');
 
+  // --- exam seat marking rules: public read with defaults, admin-only changes, validated, other settings untouched
+  const seatRules = await fn('api/seat-settings.js');
+  const readRules = async () => (await seatRules.onRequestGet({ env })).json();
+  assert.deepEqual(await readRules(), { marking: 'on', names: 'everyone' }, 'defaults: marking on, names visible');
+  assert.equal((await call(settings, 'PUT', '/api/admin/settings', { body: { seatMarking: 'off' } })).status, 401);
+  assert.equal((await call(settings, 'PUT', '/api/admin/settings', { cookie: adminCookie, body: { seatMarking: 'maybe' } })).status, 400);
+  assert.equal((await call(settings, 'PUT', '/api/admin/settings', { cookie: adminCookie, body: { seatNames: 'nobody' } })).status, 400);
+  assert.equal((await call(settings, 'PUT', '/api/admin/settings', { cookie: adminCookie, body: {} })).status, 400);
+  assert.equal((await call(settings, 'PUT', '/api/admin/settings', { cookie: adminCookie, body: { seatMarking: 'off', seatNames: 'self' } })).status, 200);
+  assert.deepEqual(await readRules(), { marking: 'off', names: 'self' });
+  const both = (await call(settings, 'GET', '/api/admin/settings', { cookie: adminCookie })).data;
+  assert.equal(both.seatMarking, 'off'); assert.equal(both.seatNames, 'self'); assert.equal(both.whoCanAdd, 'admin', 'who can add is unchanged');
+  assert.equal((await call(settings, 'PUT', '/api/admin/settings', { cookie: adminCookie, body: { seatMarking: 'on' } })).status, 200);
+  assert.deepEqual(await readRules(), { marking: 'on', names: 'self' }, 'changing one rule keeps the other');
+  await call(settings, 'PUT', '/api/admin/settings', { cookie: adminCookie, body: { seatNames: 'everyone' } });
+
   // --- who can add: admin and co-admins
   assert.equal((await call(settings, 'PUT', '/api/admin/settings', { cookie: adminCookie, body: { whoCanAdd: 'bogus' } })).status, 400);
   assert.equal((await call(settings, 'PUT', '/api/admin/settings', { cookie: adminCookie, body: { whoCanAdd: 'coadmin' } })).status, 200);

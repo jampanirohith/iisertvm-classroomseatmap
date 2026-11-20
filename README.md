@@ -45,6 +45,17 @@ Sign in at `admin.html`. The **Schedule** tab is a weekly calendar (Monday to Su
 | Admin and co-admins | Admin, and co-admins who sign in | Admin: any event. Co-admin: the events they added |
 | Anyone | Anyone, no sign-in needed | Admin: any event. Co-admin: their own. Visitors cannot edit or delete |
 
+**Exam seat marking**
+
+| Option | Effect |
+| --- | --- |
+| Students can mark their seats (default) | Anyone opening an exam can mark a free seat with their name |
+| Seat marking is off | The seat map is view-only; seats already marked stay marked |
+| Names: Everyone (default) | Tapping a marked seat shows who marked it |
+| Names: Only the person who marked it | Other students see the seat as marked, without a name |
+
+Seat marking is enforced by the database once `supabase/schema.sql` has been run again. The name setting is applied by the website, so it keeps names out of the page for other students but is not a lock on the database itself.
+
 **Co-admins.** Add an email and a password for each person, share the password with them directly, and they sign in from the **Co-admin** tab. You can reset a password or remove a co-admin at any time; either one signs them out immediately.
 
 The **+ Event** button on a classroom page appears only for people who may add events right now. Visitors who cannot add never see it.

@@ -9,6 +9,10 @@ const encoder = new TextEncoder();
 
 export const MODES = ['admin', 'coadmin', 'anyone'];
 export const DEFAULT_MODE = 'admin';
+// Exam seat marking: whether students can mark seats ('on' / 'off'), and who sees the name on a marked seat
+// ('everyone', or 'self' = only the person who marked it; everyone else just sees the seat as taken).
+export const SEAT_MARKING = ['on', 'off'];
+export const SEAT_NAMES = ['everyone', 'self'];
 
 export function jsonResponse(body, status = 200, headers = {}) {
   return Response.json(body, {
@@ -192,4 +196,14 @@ export function canAddEvents(actor, mode) {
   if (actor && actor.role === 'admin') return true;
   if (actor && actor.role === 'coadmin') return mode !== 'admin';
   return mode === 'anyone';
+}
+
+export async function getSeatSettings(env) {
+  const result = await databaseRequest(env, 'app_settings?select=key,value');
+  const rows = !result.error && Array.isArray(result.data) ? result.data : [];
+  const get = key => (rows.find(r => r.key === key) || {}).value;
+  return {
+    seatMarking: SEAT_MARKING.includes(get('seat_marking')) ? get('seat_marking') : 'on',
+    seatNames: SEAT_NAMES.includes(get('seat_names')) ? get('seat_names') : 'everyone'
+  };
 }

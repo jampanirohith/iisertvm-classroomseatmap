@@ -359,10 +359,13 @@
   async function loadSettings() {
     if (role() !== 'admin') return;
     try {
-      const { whoCanAdd } = await api('/api/admin/settings');
-      const input = document.querySelector(`input[name="mode"][value="${whoCanAdd}"]`);
-      if (input) input.checked = true;
+      const { whoCanAdd, seatMarking, seatNames } = await api('/api/admin/settings');
+      for (const [name, value] of [['mode', whoCanAdd], ['seatMarking', seatMarking], ['seatNames', seatNames]]) {
+        const input = document.querySelector(`input[name="${name}"][value="${value}"]`);
+        if (input) input.checked = true;
+      }
       setMessage($('mode-message'), '');
+      setMessage($('seat-message'), '');
     } catch (error) { setMessage($('mode-message'), error.message, 'error'); }
     loadCoadmins();
   }
@@ -380,6 +383,21 @@
       loadSettings();
     }
   });
+
+  for (const [box, field] of [['marking-options', 'seatMarking'], ['names-options', 'seatNames']]) {
+    $(box).addEventListener('change', async event => {
+      const input = event.target.closest(`input[name="${field}"]`);
+      if (!input) return;
+      setMessage($('seat-message'), 'Saving…');
+      try {
+        await api('/api/admin/settings', { method: 'PUT', body: JSON.stringify({ [field]: input.value }) });
+        setMessage($('seat-message'), 'Saved.', 'success');
+      } catch (error) {
+        setMessage($('seat-message'), error.message, 'error');
+        loadSettings();
+      }
+    });
+  }
 
   async function loadCoadmins() {
     const list = $('coadmin-list');

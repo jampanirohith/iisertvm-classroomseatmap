@@ -73,6 +73,20 @@
           <p class="admin-message" id="mode-message" role="status" aria-live="polite"></p>
         </div>
         <div class="admin-panel">
+          <h2>Exam seat marking</h2>
+          <p class="panel-intro">Applies to every exam. Seats that are already marked stay marked.</p>
+          <div class="option-list" id="marking-options">
+            <label class="option"><input type="radio" name="seatMarking" value="on"><span><strong>Students can mark their seats</strong><small>Anyone opening an exam can mark a free seat with their name.</small></span></label>
+            <label class="option"><input type="radio" name="seatMarking" value="off"><span><strong>Seat marking is off</strong><small>The seat map is view-only; nobody can mark a seat.</small></span></label>
+          </div>
+          <h3 class="panel-sub">Who sees the name on a marked seat</h3>
+          <div class="option-list" id="names-options">
+            <label class="option"><input type="radio" name="seatNames" value="everyone"><span><strong>Everyone</strong><small>Tapping a marked seat shows who marked it.</small></span></label>
+            <label class="option"><input type="radio" name="seatNames" value="self"><span><strong>Only the person who marked it</strong><small>Everyone else sees the seat as marked, without a name.</small></span></label>
+          </div>
+          <p class="admin-message" id="seat-message" role="status" aria-live="polite"></p>
+        </div>
+        <div class="admin-panel">
           <h2>Co-admins</h2>
           <p class="panel-intro">Give each co-admin an email and a password. They sign in from the Co-admin tab.</p>
           <form id="coadmin-form">

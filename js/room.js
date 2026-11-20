@@ -35,7 +35,7 @@
       <button type="button" data-zoom="fit" aria-label="Fit whole classroom" title="Fit whole classroom">${zoomIcon('M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5')}</button>
     </div>`;
 
-  const state = { events: [], eventId: null, date: null, bookings: {}, scale: 1, manualZoom: false, showWhole: false, lastScale: 0 };
+  const state = { events: [], eventId: null, date: null, bookings: {}, scale: 1, manualZoom: false, showWhole: false, lastScale: 0, rules: { marking: 'on', names: 'everyone' } };
   const currentEvent = () => state.events.find(e => String(e.id) === String(state.eventId)) || null;
   const hasLoose = Boolean(room.layout && (room.layout.looseChairs || room.layout.rows.some(r => r.tail && r.tail.kind === 'platform')));
 
@@ -80,13 +80,15 @@
     };
     const seat = id => {
       const ev = currentEvent();
-      const canMark = Boolean(ev && ev.type === 'exam');
-      const b = canMark ? state.bookings[id] : null;
+      const isExam = Boolean(ev && ev.type === 'exam');
+      const canMark = isExam && state.rules.marking === 'on';
+      const b = isExam ? state.bookings[id] : null;
+      const who = b ? shownName(b) : '';
       const label = b
-        ? `Seat ${id}, marked${b.mine ? ' by you' : ''}${b.name ? ' (' + b.name + ')' : ''}`
+        ? `Seat ${id}, marked${b.mine ? ' by you' : ''}${who ? ' (' + who + ')' : ''}`
         : canMark ? `Seat ${id}, available to mark` : `Seat ${id}`;
-      const cls = `seat${id.length > 2 ? ' long' : ''}${b ? (b.mine ? ' mine' : ' booked') : ''}${canMark ? '' : ' readonly'}`;
-      return `<button type="button" class="${cls}" data-seat="${esc(id)}" aria-label="${esc(label)}" title="${esc(label)}" aria-disabled="${!canMark}">${esc(id)}</button>`;
+      const cls = `seat${id.length > 2 ? ' long' : ''}${b ? (b.mine ? ' mine' : ' booked') : ''}${canMark || b ? '' : ' readonly'}`;
+      return `<button type="button" class="${cls}" data-seat="${esc(id)}" aria-label="${esc(label)}" title="${esc(label)}" aria-disabled="${!canMark && !b}">${esc(id)}</button>`;
     };
 
     const front = ex.front || [];
@@ -334,19 +336,24 @@
     state.date = iso; state.eventId = null; state.bookings = {};
     syncUrl(); renderAll();
   }
+  // The name shown on a marked seat: the admin can limit names to the person who marked the seat.
+  const shownName = b => (state.rules.names === 'self' && !b.mine ? '' : b.name || '');
   // Seats this device marked for the selected exam.
   const mySeats = () => Object.entries(state.bookings).filter(([, b]) => b.mine).map(([seat]) => seat).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   function renderFoot() {
     const foot = $('room-foot'), ev = currentEvent();
     const legend = [];
-    if (ev && ev.type === 'exam') legend.push('<span><i class="sw"></i>Available</span>', '<span><i class="sw marked"></i>Marked</span>', '<span><i class="sw mine"></i>Yours</span>');
+    if (ev && ev.type === 'exam') {
+      if (state.rules.marking === 'on') legend.push('<span><i class="sw"></i>Available</span>');
+      legend.push('<span><i class="sw marked"></i>Marked</span>', '<span><i class="sw mine"></i>Yours</span>');
+    }
     if (hasLoose) legend.push('<span><i class="sw loose"></i>Loose chair, no number</span>');
     let html = '';
     if (ev) {
       const marked = Store.bookmarks.has(ev.id);
       const bits = [dateLong(ev.date), `${timeLabel(ev.start)} – ${timeLabel(ev.end)}`];
       if (ev.professor) bits.push(`Prof. ${ev.professor}`);
-      if (ev.type === 'exam') bits.push(`${Object.keys(state.bookings).length} of ${room.capacity} seats marked`);
+      if (ev.type === 'exam') bits.push(state.rules.marking === 'on' ? `${Object.keys(state.bookings).length} of ${room.capacity} seats marked` : 'Seat marking is turned off');
       const seats = ev.type === 'exam' ? mySeats() : [];
       html += `<div class="foot-event"><strong>${esc(ev.title)}</strong>${seats.length ? `<em class="my-seat">Your seat: ${esc(seats.join(', '))}</em>` : ''}<span>${bits.map(esc).join(' · ')}${ev.note ? `<br>${esc(ev.note)}` : ''}</span></div>`;
       html += `<button type="button" class="bookmark-btn" data-bookmark="${esc(ev.id)}" aria-pressed="${marked}">${flag}<span>${marked ? 'In My events' : 'Add to My events'}</span></button>`;
@@ -384,7 +391,11 @@
     state.events = (await Store.listEvents(room.id)).sort((a, b) => when(a).localeCompare(when(b)));
     try { Store.bookmarks.sync(room.id, state.events); } catch (error) { console.error(error); }
   }
-  async function loadBookings() { const ev = currentEvent(); state.bookings = ev && ev.type === 'exam' ? await Store.listBookings(ev.id) : {}; }
+  async function loadBookings() {
+    const ev = currentEvent();
+    if (ev && ev.type === 'exam') state.rules = await Store.seatSettings();
+    state.bookings = ev && ev.type === 'exam' ? await Store.listBookings(ev.id) : {};
+  }
   async function refreshBookings() { await loadBookings(); renderFoot(); renderHall(); refit(); }
   async function selectEvent(id) {
     state.eventId = id ? String(id) : null;
@@ -444,13 +455,15 @@
     const ev = currentEvent();
     if (!ev || ev.type !== 'exam') return;   // seats are only markable for exams; for other events the map is view-only
     const taken = state.bookings[btn.dataset.seat];
-    if (taken) {   // a marked seat: show who marked it
+    if (taken) {   // a marked seat: show who marked it (names can be limited to the person who marked it)
       $('info-no').textContent = btn.dataset.seat;
-      $('info-who').textContent = taken.mine ? `${taken.name || 'You'} (you)` : (taken.name || 'Someone');
+      const name = shownName(taken);
+      $('info-line').innerHTML = taken.mine ? `Marked by <b>${esc(name || 'you')}</b> (you)` : name ? `Marked by <b>${esc(name)}</b>` : 'Marked by another student';
       $('info-event').textContent = `${ev.title} · ${dateLong(ev.date)} · ${timeLabel(ev.start)} – ${timeLabel(ev.end)}`;
       $('seat-info').showModal();
       return;
     }
+    if (state.rules.marking !== 'on') { notify('Seat marking is turned off for now.'); return; }
     seatToMark = btn.dataset.seat;
     $('seat-no').textContent = seatToMark;
     $('seat-event').textContent = `${ev.title} · ${dateLong(ev.date)} · ${timeLabel(ev.start)} – ${timeLabel(ev.end)}`;
@@ -472,7 +485,12 @@
       try { localStorage.setItem(NAME_KEY, name); } catch { /* ignore */ }
       await refreshBookings();
       notify(`Seat ${seatToMark} marked.`);
-    } catch (error) { console.error(error); notify('Could not mark your seat. Please try again.'); }
+    } catch (error) {
+      console.error(error);
+      state.rules = await Store.seatSettings();
+      if (state.rules.marking !== 'on') { seatDialog.close(); notify('Seat marking has been turned off.'); renderHall(); renderFoot(); }
+      else notify('Could not mark your seat. Please try again.');
+    }
   });
 
   Store.subscribe(async change => {

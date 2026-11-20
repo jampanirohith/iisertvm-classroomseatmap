@@ -130,6 +130,18 @@
       return added.sort(byWhen);
     },
 
+    // Seat-marking rules set by the admin: { marking: 'on' | 'off', names: 'everyone' | 'self' }.
+    // Falls back to the defaults (on, everyone) when the server cannot be reached.
+    async seatSettings() {
+      const fallback = { marking: 'on', names: 'everyone' };
+      try {
+        const response = await fetch('/api/seat-settings', { cache: 'no-store' });
+        if (!response.ok) return fallback;
+        const data = await response.json();
+        return { marking: data.marking === 'off' ? 'off' : 'on', names: data.names === 'self' ? 'self' : 'everyone' };
+      } catch { return fallback; }
+    },
+
     // Returns { [seatId]: { name, mine } } for one event.
     async listBookings(eventId) {
       let rows;

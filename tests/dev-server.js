@@ -28,7 +28,7 @@ const shim = `window.supabase = { createClient() { return {
   } }; } };`;
 const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml' };
 const routes = {
-  '/api/config': 'api/config.js', '/api/admin/login': 'api/admin/login.js', '/api/admin/logout': 'api/admin/logout.js', '/api/admin/session': 'api/admin/session.js',
+  '/api/config': 'api/config.js', '/api/seat-settings': 'api/seat-settings.js', '/api/admin/login': 'api/admin/login.js', '/api/admin/logout': 'api/admin/logout.js', '/api/admin/session': 'api/admin/session.js',
   '/api/admin/settings': 'api/admin/settings.js', '/api/admin/coadmins': 'api/admin/coadmins.js', '/api/admin/events': 'api/admin/events.js'
 };
 

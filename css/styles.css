@@ -290,6 +290,7 @@ body.room-page { display: flex; flex-direction: column; min-height: 0; height: 1
 .admin-hidden { display: none !important; }
 .admin-panel { padding: 20px; margin-bottom: 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
 .admin-panel h2 { margin-bottom: 4px; }
+.panel-sub { margin: 18px 0 8px; font-size: 15px; }
 .panel-intro { margin-bottom: 14px; color: var(--muted); font-size: 14px; }
 .segmented { display: grid; grid-auto-flow: column; gap: 0; margin-bottom: 14px; overflow: hidden; border: 1px solid var(--line-strong); border-radius: 6px; }
 .segmented button { padding: 8px 10px; border: 0; background: var(--surface); font-size: 14px; font-weight: 500; color: var(--muted); }
