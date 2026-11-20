@@ -3,6 +3,7 @@
 Updated: 2026-11-20
 
 ## Done
+- Exam seats: tapping a marked seat opens a small box saying who marked it ("Marked by Asha", or "(you)" for your own seat), with the exam name and time. Everyone sees the names already stored with the marks; no database change.
 - Phone classroom page made less crowded: the month row is gone; a calendar button sits at the top right of the classroom name bar (opens the month calendar; a Today link appears beside it when another day is chosen). The day strip has an arrow at the left and right corner to move one day at a time. Text, tiles, event cards, footer and legend are smaller, and the header is slimmer. The seat map keeps opening at the readable size; the fit button and the pull-up events bar show the whole room.
 - Softer seat map: seats are rounded like small chairs (rounder at the top) with a faint shadow, a bit more space between seats and rows, rounded stairs and aisles, a pill-shaped board and door labels, gentle pastel tones (translucent in dark mode). Seats lift slightly when hovered, your seat has a soft glow, and taken seats are a quiet flat grey. Layout and numbers are unchanged.
 - Jupiter seating corrected: it now has the same arrangement as Venus (seat 1 at the audience's right, numbers snaking from row to row, front door on the right), instead of the mirror image it had before. Seat numbers are unchanged, so existing seat marks stay on the same numbers.

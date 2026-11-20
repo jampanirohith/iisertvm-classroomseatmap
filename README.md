@@ -22,7 +22,7 @@ Open a classroom to see its seating arrangement, browse its events by date, book
 - **My events** (homepage) has two columns: **Classes**, shown one date at a time (pick the date), and **Exams**, all in one list. Anything else you bookmark appears under **Other**.
 - **Home search.** Search classes and exams by course code (with or without a space), hall, teacher or date ("25 Nov", today, tomorrow), with All/Classes/Exams filters. Without a search the home page shows the classrooms (with today's count) and My events.
 - **Seat map.** On computers the whole classroom is in view when the page opens. On phones it opens at a readable size and centred; the fit button switches between the whole room and the readable size. Pulling the events bar up also shows the whole room. Pinch (or Ctrl + scroll) to zoom and drag to move around.
-- **Exams only:** tap a free seat to mark it with your name. Classes and other events are view-only.
+- **Exams only:** tap a free seat to mark it with your name; tap a marked seat to see who marked it. Classes and other events are view-only.
 - **Look.** Plain and flat: solid colours, thin borders, the device's own font. It follows the device's light or dark setting; there is no theme button.
 
 ## For the admin

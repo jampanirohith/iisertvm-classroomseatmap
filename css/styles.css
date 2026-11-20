@@ -81,6 +81,7 @@ select option { background: var(--surface); color: var(--ink); }
 dialog { width: calc(100% - 28px); max-width: 460px; max-height: calc(100dvh - 28px); padding: 20px; overflow: auto; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: var(--ink); }
 dialog::backdrop { background: var(--scrim); }
 dialog h2 { font-size: 18px; }
+.seat-who { margin: 10px 0 4px; font-size: 16px; overflow-wrap: anywhere; }
 .dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 18px; }
 #toast { position: fixed; left: 50%; bottom: 24px; z-index: 30; max-width: calc(100% - 32px); padding: 10px 16px; border-radius: 6px; background: var(--ink); color: var(--bg); font-size: 14px; opacity: 0; transform: translate(-50%, 8px); pointer-events: none; transition: opacity .15s, transform .15s; }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
@@ -267,10 +268,10 @@ body.room-page { display: flex; flex-direction: column; min-height: 0; height: 1
 .seat { position: relative; flex: 0 0 var(--seat-w); width: var(--seat-w); height: var(--seat-h); padding: 0; border: 1px solid var(--seat-line); border-radius: 12px 12px 8px 8px; background: var(--seat-fill); box-shadow: var(--seat-shadow); color: var(--seat-ink); font-size: 12px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; text-align: center; transition: transform .16s ease, background-color .16s ease, border-color .16s ease, box-shadow .16s ease, color .16s ease; }
 .seat.long { font-size: 10px; letter-spacing: -.02em; }
 .seat.readonly { cursor: default; }
-.seat:not(:disabled):not(.readonly):hover { transform: translateY(-2px); border-color: var(--accent); background: var(--accent-soft); color: var(--accent); box-shadow: 0 4px 10px var(--seat-glow); }
-.seat:not(:disabled):not(.readonly):active { transform: translateY(0) scale(.96); }
-.seat.booked { border-color: transparent; background: var(--seat-taken); box-shadow: none; color: var(--muted); cursor: not-allowed; }
-.seat.mine, .seat.mine:disabled { border-color: var(--accent); background: var(--accent); box-shadow: 0 3px 9px var(--seat-glow); color: var(--accent-ink); cursor: default; }
+.seat:not(.booked):not(.mine):not(.readonly):hover { transform: translateY(-2px); border-color: var(--accent); background: var(--accent-soft); color: var(--accent); box-shadow: 0 4px 10px var(--seat-glow); }
+.seat:not(.booked):not(.mine):not(.readonly):active { transform: translateY(0) scale(.96); }
+.seat.booked { border-color: transparent; background: var(--seat-taken); box-shadow: none; color: var(--muted); cursor: pointer; }
+.seat.mine { border-color: var(--accent); background: var(--accent); box-shadow: 0 3px 9px var(--seat-glow); color: var(--accent-ink); cursor: pointer; }
 
 .aisle { position: relative; flex: 0 0 var(--aisle-w); width: var(--aisle-w); align-self: stretch; }
 .aisle.stairs, .span.lead.stairs, .span.tail.stairs { margin-block: calc(var(--row-gap) / -2); border-radius: 14px; background: var(--stairs); }

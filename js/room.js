@@ -86,7 +86,7 @@
         ? `Seat ${id}, marked${b.mine ? ' by you' : ''}${b.name ? ' (' + b.name + ')' : ''}`
         : canMark ? `Seat ${id}, available to mark` : `Seat ${id}`;
       const cls = `seat${id.length > 2 ? ' long' : ''}${b ? (b.mine ? ' mine' : ' booked') : ''}${canMark ? '' : ' readonly'}`;
-      return `<button type="button" class="${cls}" data-seat="${esc(id)}" aria-label="${esc(label)}" title="${esc(label)}" aria-disabled="${!canMark || Boolean(b)}"${b ? ' disabled' : ''}>${esc(id)}</button>`;
+      return `<button type="button" class="${cls}" data-seat="${esc(id)}" aria-label="${esc(label)}" title="${esc(label)}" aria-disabled="${!canMark}">${esc(id)}</button>`;
     };
 
     const front = ex.front || [];
@@ -437,11 +437,20 @@
   const seatDialog = $('seat-dialog');
   let seatToMark = null;
   seatDialog.querySelector('[data-close]').addEventListener('click', () => seatDialog.close());
+  $('seat-info').querySelector('[data-close]').addEventListener('click', () => $('seat-info').close());
   $('hall').addEventListener('click', e => {
     const btn = e.target.closest('.seat');
-    if (!btn || btn.disabled) return;
+    if (!btn) return;
     const ev = currentEvent();
     if (!ev || ev.type !== 'exam') return;   // seats are only markable for exams; for other events the map is view-only
+    const taken = state.bookings[btn.dataset.seat];
+    if (taken) {   // a marked seat: show who marked it
+      $('info-no').textContent = btn.dataset.seat;
+      $('info-who').textContent = taken.mine ? `${taken.name || 'You'} (you)` : (taken.name || 'Someone');
+      $('info-event').textContent = `${ev.title} · ${dateLong(ev.date)} · ${timeLabel(ev.start)} – ${timeLabel(ev.end)}`;
+      $('seat-info').showModal();
+      return;
+    }
     seatToMark = btn.dataset.seat;
     $('seat-no').textContent = seatToMark;
     $('seat-event').textContent = `${ev.title} · ${dateLong(ev.date)} · ${timeLabel(ev.start)} – ${timeLabel(ev.end)}`;

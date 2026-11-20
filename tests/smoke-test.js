@@ -255,6 +255,7 @@ console.log('PASS: Cloudflare runtime config, admin session security and permiss
   assert.ok(roomJs.includes("state.events.filter(e => e.date === state.date)"), 'only the selected date\'s events are listed');
   assert.ok(roomJs.includes('/api/admin/session') && roomJs.includes('session.canAdd'), 'the + Event button follows who may add events');
   assert.ok(roomJs.includes('PHONE_READABLE') && roomJs.includes('showWhole'), 'phones open at a readable zoom with a whole-room toggle');
+  assert.ok(roomJs.includes("$('seat-info').showModal()") && read('room.html').includes('id="seat-info"') && !roomJs.includes("' disabled' : ''}>"), 'marked seats open a dialog showing who marked them');
   assert.ok(read('room.html').includes('id="day-strip"') && read('room.html').includes('id="top-cal"') && read('room.html').includes('id="day-prev"') && read('room.html').includes('id="day-next"') && !read('room.html').includes('month-btn'), 'room page has the calendar button and day arrows');
   { const css = read('css/styles.css'), mapCss = css.slice(css.indexOf('.map-card {'), css.indexOf('/* ---------- classroom page'));
     assert.ok(!/class="light-only"/.test(read('interactive-map.html')), 'the page itself follows the device theme');
