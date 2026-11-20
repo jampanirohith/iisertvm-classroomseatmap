@@ -245,6 +245,7 @@ body.room-page { display: flex; flex-direction: column; min-height: 0; height: 1
 .foot-event { display: flex; flex: 1 1 260px; flex-direction: column; min-width: 0; }
 .foot-event strong { overflow-wrap: anywhere; }
 .foot-event span { color: var(--muted); font-size: 13px; }
+.foot-hint { color: var(--muted); font-size: 13px; }
 .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; color: var(--muted); font-size: 13px; }
 .sw { display: inline-block; width: 16px; height: 15px; margin-right: 6px; vertical-align: -3px; border: 1px solid var(--seat-line); border-radius: 6px 6px 4px 4px; background: var(--seat-fill); box-shadow: var(--seat-shadow); }
 .sw.marked { border-color: transparent; background: var(--seat-taken); box-shadow: none; }

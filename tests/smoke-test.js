@@ -360,3 +360,13 @@ console.log('PASS: Cloudflare runtime config, admin session security and permiss
   assert.ok(/\.bar-handle \{ display: none; \}/.test(css), 'handle is phone-only');
   console.log('PASS: pull-up events bar on phones');
 }
+
+// Opening a classroom or changing the day selects no event; only a tap (or a link to a specific event) does.
+{
+  const js = read('js/room.js');
+  const goDate = js.slice(js.indexOf('async function goDate'), js.indexOf('// The name shown on a marked seat'));
+  assert.ok(!goDate.includes('selectEvent'), 'changing the day does not pick an event');
+  const def = js.slice(js.indexOf('function defaultEvent'), js.indexOf('function syncUrl'));
+  assert.ok(def.includes("params.get('event')") && !def.includes('todayISO') && !def.includes('events[0]'), 'only an ?event= link selects an event on open');
+  console.log('PASS: no event is selected automatically');
+}

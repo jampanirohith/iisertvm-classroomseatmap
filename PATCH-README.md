@@ -14,6 +14,7 @@ Supabase SQL (run in the SQL editor, only when you want them):
 - supabase/courses.md and supabase/timetable-command.md: the course reference and the prompt for an AI that turns a timetable PDF into SQL (they are not served on the website).
 
 What changed
+- Classroom page: no event is selected on opening a classroom or changing the day; an event is selected only when tapped (links to a specific event still select it).
 - Two exams of different courses can share a hall at the same time: the admin accepts it, the week view shows them side by side, and they share one seat map (a seat marked for one is taken for the other; tapping it says who marked it and for which course).
 - Plain, flat look; plain seat map; no header bar (links to Interactive map and Admin sit in a plain-text footer).
 - Home: search for classes and exams; today's count per classroom.

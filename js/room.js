@@ -256,7 +256,7 @@
   function renderStrip() {
     const dates = $('date-strip'), strip = $('event-strip');
     $('event-bar').hidden = false;
-    if (!state.date) state.date = (currentEvent() || state.events[0] || { date: todayISO() }).date;
+    if (!state.date) state.date = (currentEvent() || { date: todayISO() }).date;
     // Yesterday, the chosen day and tomorrow, shown as real dates. Click the middle one for the calendar.
     dates.innerHTML = [-1, 0, 1].map(n => {
       const date = addDays(state.date, n), d = parseDate(date), mid = n === 0;
@@ -278,7 +278,7 @@
   const BAR_KEY = 'lhc-bar-collapsed';
   function updateSummary() {
     const ev = currentEvent();
-    $('bar-sum').textContent = `${LHC_FMT.dateShort(state.date)} · ${ev ? `${ev.title}, ${timeLabel(ev.start)}` : 'No events'}`;
+    $('bar-sum').textContent = `${LHC_FMT.dateShort(state.date)} · ${ev ? `${ev.title}, ${timeLabel(ev.start)}` : state.events.some(e => e.date === state.date) ? 'Select an event' : 'No events'}`;
   }
   function setCollapsed(on, remember) {
     const bar = $('event-bar');
@@ -331,8 +331,7 @@
   }
   async function goDate(iso) {
     if (!parseDate(iso)) return;
-    const first = state.events.find(x => x.date === iso);
-    if (first) { state.date = iso; await selectEvent(first.id); return; }
+    // Changing the day never picks an event: the person taps one.
     state.date = iso; state.eventId = null; state.bookings = {};
     syncUrl(); renderAll();
   }
@@ -358,6 +357,7 @@
       html += `<div class="foot-event"><strong>${esc(ev.title)}</strong>${seats.length ? `<em class="my-seat">Your seat: ${esc(seats.join(', '))}</em>` : ''}<span>${bits.map(esc).join(' · ')}${ev.note ? `<br>${esc(ev.note)}` : ''}</span></div>`;
       html += `<button type="button" class="bookmark-btn" data-bookmark="${esc(ev.id)}" aria-pressed="${marked}">${flag}<span>${marked ? 'In My events' : 'Add to My events'}</span></button>`;
     }
+    if (!ev && state.events.some(e => e.date === state.date)) html += '<div class="foot-hint">Tap an event above to see its details and seats.</div>';
     if (legend.length) html += `<div class="legend" aria-label="Seat key">${legend.join('')}</div>`;
     foot.innerHTML = html;
     foot.hidden = !html;
@@ -376,10 +376,8 @@
 
   function defaultEvent(events) {
     const wanted = params.get('event');
-    if (wanted && events.some(e => String(e.id) === wanted)) return wanted;
-    const now = new Date(), stamp = `${todayISO()}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
-    const pick = events.find(e => when(e) >= stamp) || events[events.length - 1];
-    return pick ? String(pick.id) : null;
+    // Only a link to a specific event (search results, My events) selects one; opening a classroom selects nothing.
+    return wanted && events.some(e => String(e.id) === wanted) ? wanted : null;
   }
   function syncUrl() {
     const p = new URLSearchParams();
