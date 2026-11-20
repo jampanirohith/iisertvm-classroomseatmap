@@ -31,8 +31,8 @@ for (const room of rooms) {
 }
 
 // Jupiter and Venus: 8 rows of 14 (blocks of 4 | 6 | 4), numbers snake from row to row.
-// Venus has seat 1 at the audience's right; Jupiter is its mirror image.
-for (const [id, seatOneOn, door] of [['lhc-jupiter', 'left', 'left'], ['lhc-venus', 'right', 'right']]) {
+// Both halls have seat 1 at the audience's right and the front door on the right.
+for (const [id, seatOneOn, door] of [['lhc-jupiter', 'right', 'right'], ['lhc-venus', 'right', 'right']]) {
   const layout = rooms.find(r => r.id === id).layout, rows = layout.rows;
   assert.deepEqual(rows.map(r => r.seats.length), Array(8).fill(14));
   rows.forEach((row, i) => {
@@ -47,9 +47,9 @@ for (const [id, seatOneOn, door] of [['lhc-jupiter', 'left', 'left'], ['lhc-venu
   assert.equal(layout.exits.rear.length, 2);
 }
 {
-  // The two halls are exact mirror images of each other.
+  // The two halls have the same seating arrangement.
   const j = rooms.find(r => r.id === 'lhc-jupiter').layout.rows, v = rooms.find(r => r.id === 'lhc-venus').layout.rows;
-  j.forEach((row, i) => assert.deepEqual(row.seats, v[i].seats.slice().reverse()));
+  j.forEach((row, i) => assert.deepEqual(row.seats, v[i].seats));
 }
 
 // Bhaskara: 252 numbered seats; rows 1-10 hold 24 in blocks of 6, rows 8-10 add a separate block of 4.
@@ -156,7 +156,9 @@ const flatCss = css.replace(glass, '');
 assert.ok(!/backdrop-filter|blur\(/.test(flatCss), 'no glass / blur effects outside dark mode');
 assert.ok((flatCss.match(/gradient\(/g) || []).length === 1 && /\.cal-col \{[^}]*linear-gradient/.test(flatCss), 'no gradients except the calendar hour lines');
 assert.ok(/--bg: #000000/.test(css), 'dark mode page is pure black');
-assert.ok(!/(^|[^-])serif|box-shadow/.test(css.replace(/sans-serif/g, "")), 'no serif headings or drop shadows');
+assert.ok(!/(^|[^-])serif/.test(css.replace(/sans-serif/g, "")), 'no serif headings');
+assert.ok(/\.seat \{[^}]*border-radius: 12px 12px 8px 8px[^}]*transition/.test(css), 'seats are soft: rounded with smooth transitions');
+assert.ok((css.match(/box-shadow/g) || []).length <= 12 && !/box-shadow:[^;]*\b(?:[2-9]\d|1\d\d)px/.test(css.replace(/rgba\([^)]*\)/g, '')), 'shadows stay small and soft');
 for (const page of ['index.html', 'interactive-map.html', 'admin.html']) { const h = read(page); assert.ok(!h.includes('site-bar') && h.includes('class="site-foot"'), `${page} has no header bar, only the plain footer links`); }
 assert.ok(/class="site-foot"><nav[^>]*><a href="interactive-map.html">Interactive map<\/a>[\s\S]*<a href="admin.html">Admin<\/a>/.test(read('index.html')), 'home footer lists Interactive map and Admin');
 assert.ok(/id="room-list"/.test(read('index.html')) && /\.menu \{/.test(css), 'home page lists classrooms as a plain menu');

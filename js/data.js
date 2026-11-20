@@ -3,11 +3,11 @@
   const seq = (from, to) => Array.from({ length: to - from + 1 }, (_, i) => String(from + i));
   const rev = list => list.slice().reverse();
 
-  // Jupiter and Venus are twin halls (mirror images of each other on the floor plan):
+  // Jupiter and Venus are twin halls with the same seating arrangement:
   // 8 rows of 14 numbered seats = 112, in blocks of 4 | 6 | 4 with a stair aisle between blocks.
   // Numbers snake from row to row, and row 1 starts at the wall where seat 1 is (`seatOneOn`).
   // Both rear doors sit at the two stair aisles; the single front door is beside the board on the `frontDoor` side.
-  // Venus was surveyed from photos (seat 1 at the audience's right). Jupiter mirrors it and has not been photographed.
+  // In both halls seat 1 is at the audience's right and the front door is on the right.
   const twinHall = ({ seatOneOn, frontDoor }) => ({
     rows: Array.from({ length: 8 }, (_, r) => {
       const run = seq(r * 14 + 1, r * 14 + 14);               // seat numbers in the direction the row is numbered
@@ -75,7 +75,7 @@
 
   // layout: null means the seating arrangement has not been confirmed yet.
   window.LHC_ROOMS = [
-    { id: 'lhc-jupiter', name: 'Jupiter', capacity: 112, layout: twinHall({ seatOneOn: 'left', frontDoor: 'left' }) },
+    { id: 'lhc-jupiter', name: 'Jupiter', capacity: 112, layout: twinHall({ seatOneOn: 'right', frontDoor: 'right' }) },
     { id: 'lhc-venus', name: 'Venus', capacity: 112, layout: twinHall({ seatOneOn: 'right', frontDoor: 'right' }) },
     { id: 'lhc-bhaskara', name: 'Bhaskara', capacity: 252, layout: bhaskara() },
     { id: 'lhc-kaumudi', name: 'Kaumudi', capacity: 228, layout: kaumudi() },

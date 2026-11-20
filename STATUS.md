@@ -3,6 +3,8 @@
 Updated: 2026-11-16
 
 ## Done
+- Softer seat map: seats are rounded like small chairs (rounder at the top) with a faint shadow, a bit more space between seats and rows, rounded stairs and aisles, a pill-shaped board and door labels, gentle pastel tones (translucent in dark mode). Seats lift slightly when hovered, your seat has a soft glow, and taken seats are a quiet flat grey. Layout and numbers are unchanged.
+- Jupiter seating corrected: it now has the same arrangement as Venus (seat 1 at the audience's right, numbers snaking from row to row, front door on the right), instead of the mirror image it had before. Seat numbers are unchanged, so existing seat marks stay on the same numbers.
 - No header bar, title or logo on the home, interactive map and admin pages. Navigation is plain text links in a footer at the bottom of the page: home shows Interactive map and Admin; the map and admin pages link back to Classrooms and the other page. The logo is still used as the browser tab and installed app icon.
 - Phone classroom page: the dates and events can be pulled up. Swipe up on the date and events area (or tap the bar under it) to collapse it to one line (date and chosen event) and show the whole classroom; swipe down or tap to bring it back. The choice is remembered on the device.
 - Phone events row redesigned: day tiles sized to fit about seven days, and event cards with a colour bar, the time, an Exam/Other tag and the full name (cards widen for long names; the bookmark icon shows only on bookmarked events, the Add to My events button is in the footer).

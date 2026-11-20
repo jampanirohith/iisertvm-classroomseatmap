@@ -11,9 +11,10 @@
   --exam: #b45309; --exam-soft: #fdf0dc;
   --other: #6d3fc4; --other-soft: #efe9fb;
   --stairs: #e8eaee; --scrim: rgba(0, 0, 0, .45);
-  --seat-line: #aab0ba; --seat-ink: #2b2f36; --seat-taken: #e3e5e9; --board: #3b4048;
+  --seat-line: #d6dbe5; --seat-ink: #2f3542; --seat-taken: #e8ebf1; --board: #4a5262;
+  --seat-fill: #ffffff; --seat-shadow: 0 1px 2px rgba(40, 60, 100, .12), 0 2px 5px rgba(40, 60, 100, .06); --seat-glow: rgba(29, 78, 216, .32);
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --seat-w: 32px; --seat-h: 30px; --gap: 5px; --row-gap: 5px; --aisle-w: 26px; --gutter-w: 64px;
+  --seat-w: 33px; --seat-h: 32px; --gap: 6px; --row-gap: 7px; --aisle-w: 28px; --gutter-w: 64px;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -26,7 +27,8 @@
     --exam: #f0b765; --exam-soft: #241a0c;
     --other: #b8a6f5; --other-soft: #1b1630;
     --stairs: #17171b; --scrim: rgba(0, 0, 0, .72);
-    --seat-line: #50505a; --seat-ink: #e8e8ec; --seat-taken: #1f1f24; --board: #2a2a31;
+    --seat-line: rgba(255, 255, 255, .12); --seat-ink: #e8e8ec; --seat-taken: rgba(255, 255, 255, .035); --board: #22232a;
+    --seat-fill: rgba(255, 255, 255, .07); --seat-shadow: 0 1px 2px rgba(0, 0, 0, .5); --seat-glow: rgba(122, 167, 255, .38);
   }
 }
 
@@ -243,15 +245,15 @@ body.room-page { display: flex; flex-direction: column; min-height: 0; height: 1
 .foot-event strong { overflow-wrap: anywhere; }
 .foot-event span { color: var(--muted); font-size: 13px; }
 .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; color: var(--muted); font-size: 13px; }
-.sw { display: inline-block; width: 16px; height: 15px; margin-right: 6px; vertical-align: -3px; border: 1px solid var(--seat-line); border-radius: 3px; background: var(--surface); }
-.sw.marked { border-color: transparent; background: var(--seat-taken); }
+.sw { display: inline-block; width: 16px; height: 15px; margin-right: 6px; vertical-align: -3px; border: 1px solid var(--seat-line); border-radius: 6px 6px 4px 4px; background: var(--seat-fill); box-shadow: var(--seat-shadow); }
+.sw.marked { border-color: transparent; background: var(--seat-taken); box-shadow: none; }
 .sw.mine { border-color: var(--accent); background: var(--accent); }
-.sw.loose { width: 18px; height: 9px; border: 1.5px dashed var(--seat-line); background: none; vertical-align: -1px; }
+.sw.loose { width: 18px; height: 9px; border: 1.5px dashed var(--seat-line); border-radius: 5px; background: none; box-shadow: none; vertical-align: -1px; }
 .bookmark-btn { display: inline-flex; align-items: center; gap: 7px; padding: 7px 13px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); font-size: 14px; font-weight: 500; }
 .bookmark-btn:hover { background: var(--soft); }
 .bookmark-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
 
-/* ---------- seat map: plain numbered boxes ---------- */
+/* ---------- seat map: soft rounded seats ---------- */
 .hall { width: max-content; display: flex; flex-direction: column; gap: var(--row-gap); transform-origin: 0 0; }
 .line { display: grid; grid-template-columns: var(--gutter-w) 1fr var(--gutter-w); align-items: center; }
 .gutter { display: flex; align-items: center; justify-content: center; }
@@ -260,23 +262,24 @@ body.room-page { display: flex; flex-direction: column; min-height: 0; height: 1
 .line.front { margin-bottom: 18px; }
 .line.rear { margin-top: 8px; }
 .span.rear-mid { display: flex; justify-content: center; align-items: flex-start; }
-.span.board { display: flex; align-items: center; justify-content: center; min-height: 28px; height: 28px; border-radius: 4px; background: var(--board); color: #f2f2f2; font-size: 11px; font-weight: 600; letter-spacing: .3em; text-indent: .3em; }
+.span.board { display: flex; align-items: center; justify-content: center; min-height: 30px; height: 30px; border-radius: 15px; background: var(--board); box-shadow: var(--seat-shadow); color: #f2f2f2; font-size: 11px; font-weight: 600; letter-spacing: .3em; text-indent: .3em; }
 
-.seat { position: relative; flex: 0 0 var(--seat-w); width: var(--seat-w); height: var(--seat-h); padding: 0; border: 1px solid var(--seat-line); border-radius: 4px; background: var(--surface); color: var(--seat-ink); font-size: 12px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; text-align: center; }
+.seat { position: relative; flex: 0 0 var(--seat-w); width: var(--seat-w); height: var(--seat-h); padding: 0; border: 1px solid var(--seat-line); border-radius: 12px 12px 8px 8px; background: var(--seat-fill); box-shadow: var(--seat-shadow); color: var(--seat-ink); font-size: 12px; font-weight: 600; line-height: 1; font-variant-numeric: tabular-nums; text-align: center; transition: transform .16s ease, background-color .16s ease, border-color .16s ease, box-shadow .16s ease, color .16s ease; }
 .seat.long { font-size: 10px; letter-spacing: -.02em; }
 .seat.readonly { cursor: default; }
-.seat:not(:disabled):not(.readonly):hover { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
-.seat.booked { border-color: transparent; background: var(--seat-taken); color: var(--muted); cursor: not-allowed; }
-.seat.mine, .seat.mine:disabled { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); cursor: default; }
+.seat:not(:disabled):not(.readonly):hover { transform: translateY(-2px); border-color: var(--accent); background: var(--accent-soft); color: var(--accent); box-shadow: 0 4px 10px var(--seat-glow); }
+.seat:not(:disabled):not(.readonly):active { transform: translateY(0) scale(.96); }
+.seat.booked { border-color: transparent; background: var(--seat-taken); box-shadow: none; color: var(--muted); cursor: not-allowed; }
+.seat.mine, .seat.mine:disabled { border-color: var(--accent); background: var(--accent); box-shadow: 0 3px 9px var(--seat-glow); color: var(--accent-ink); cursor: default; }
 
 .aisle { position: relative; flex: 0 0 var(--aisle-w); width: var(--aisle-w); align-self: stretch; }
-.aisle.stairs, .span.lead.stairs, .span.tail.stairs { margin-block: calc(var(--row-gap) / -2); background: var(--stairs); }
+.aisle.stairs, .span.lead.stairs, .span.tail.stairs { margin-block: calc(var(--row-gap) / -2); border-radius: 14px; background: var(--stairs); }
 .span.lead.stairs, .span.tail.stairs { position: relative; align-self: stretch; }
 .vlabel { position: absolute; left: 50%; top: 50%; z-index: 2; transform: translate(-50%, -50%) rotate(180deg); writing-mode: vertical-rl; font-style: normal; font-size: 10px; font-weight: 700; letter-spacing: .16em; color: var(--muted); white-space: nowrap; pointer-events: none; }
-.door { display: inline-block; padding: 2px 8px; border: 1px solid var(--line-strong); border-radius: 4px; background: var(--surface); color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .06em; white-space: nowrap; }
+.door { display: inline-block; padding: 3px 10px; border: 1px solid var(--seat-line); border-radius: 999px; background: var(--seat-fill); box-shadow: var(--seat-shadow); color: var(--muted); font-size: 10px; font-weight: 700; letter-spacing: .06em; white-space: nowrap; }
 .aisle.rear .door { position: absolute; left: 50%; top: 0; transform: translateX(-50%); }
 .span.chairs { display: flex; gap: var(--gap); align-items: center; }
-.chair { flex: 0 0 var(--seat-w); height: 12px; border: 1.5px dashed var(--seat-line); border-radius: 4px; }
+.chair { flex: 0 0 var(--seat-w); height: 12px; border: 1.5px dashed var(--seat-line); border-radius: 7px; }
 .span.tail.platform { display: flex; align-items: center; }
 
 /* ---------- admin ---------- */

@@ -115,8 +115,7 @@ layout: {
 
 ## Classroom notes
 
-- **Venus** (112 seats) was surveyed from photos. Seat 1 is at the audience's right.
-- **Jupiter** (112 seats) is Venus mirrored: seat 1 at the left, front door on the left. Check it against the room.
+- **Jupiter** and **Venus** (112 seats each) have the same arrangement: seat 1 at the audience's right, front door on the right.
 - **Bhaskara** (252 seats): 10 rows of 24 in blocks of 6, plus a 4-seat block on rows 8-10. 24 loose chairs in front of row 1 and 8 on the platform at rows 6-7 have no numbers.
 - **Kaumudi** (228 seats): numbered like the desk plates, snaking from row to row.
 - To flip a hall, change `seatOneOn` / `frontDoor` in `twinHall(...)` in `js/data.js`.
