@@ -168,7 +168,7 @@ assert.ok(/id="room-list"/.test(read('index.html')) && /\.menu \{/.test(css), 'h
   const used = new Set([...cal.matchAll(/class="([a-z][\w-]*)/g)].map(m => m[1]).concat(['cal-grid', 'cal-day-head', 'cal-times', 'cal-col', 'cal-corner', 'cal-ev', 'cal-now', 'cal-hover']));
   for (const name of used) assert.ok(css.includes(`.${name}`), `calendar class .${name} is styled`);
 }
-assert.ok(/@media \(max-width: 759px\)[\s\S]*\.date-nav \{ display: none; \}[\s\S]*\.day-bar \{ display: block; \}[\s\S]*\.day-tile/.test(css), 'phones use the merged month + day strip');
+assert.ok(/@media \(max-width: 759px\)[\s\S]*\.date-nav \{ display: none; \}[\s\S]*\.day-bar \{ display: flex;[\s\S]*\.day-arrow[\s\S]*\.day-tile/.test(css), 'phones use arrows + one day strip');
 assert.ok(!/\.chip-sub \{[^}]*ellipsis/.test(css) && !/\.my-title, \.result-list[^{]*\{[^}]*nowrap/.test(css), 'event names are never cut off in chips or lists');
 assert.ok(read('room.html').includes('id="date-today"'), 'the date bar has a Today button');
 assert.ok(read('functions/api/admin/events.js').includes('body.replace !== true') && read('js/admin.js').includes('conflict-replace'), 'the admin can replace clashing events');
@@ -255,7 +255,7 @@ console.log('PASS: Cloudflare runtime config, admin session security and permiss
   assert.ok(roomJs.includes("state.events.filter(e => e.date === state.date)"), 'only the selected date\'s events are listed');
   assert.ok(roomJs.includes('/api/admin/session') && roomJs.includes('session.canAdd'), 'the + Event button follows who may add events');
   assert.ok(roomJs.includes('PHONE_READABLE') && roomJs.includes('showWhole'), 'phones open at a readable zoom with a whole-room toggle');
-  assert.ok(read('room.html').includes('id="day-strip"') && read('room.html').includes('id="month-btn"'), 'room page has the phone day strip');
+  assert.ok(read('room.html').includes('id="day-strip"') && read('room.html').includes('id="top-cal"') && read('room.html').includes('id="day-prev"') && read('room.html').includes('id="day-next"') && !read('room.html').includes('month-btn'), 'room page has the calendar button and day arrows');
   { const css = read('css/styles.css'), mapCss = css.slice(css.indexOf('.map-card {'), css.indexOf('/* ---------- classroom page'));
     assert.ok(!/class="light-only"/.test(read('interactive-map.html')), 'the page itself follows the device theme');
     assert.ok(/--m-a: #f2f0d0/.test(mapCss) && /--m-b: #ebdad5/.test(mapCss) && /--m-c: #e4d6dd/.test(mapCss) && !/var\(--(ink|surface|muted|line|line-strong|accent-soft)\)/.test(mapCss.replace(/border: 1px solid var\(--line\);/, '')), 'only the map uses the printed-plan colours, whatever the device theme'); }

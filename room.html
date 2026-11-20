@@ -23,6 +23,10 @@
         <p id="room-sub"></p>
       </div>
       <a class="add-btn" id="add-event" href="admin.html" hidden>+ Event</a>
+      <div class="top-tools">
+        <button type="button" class="top-today" id="top-today" hidden>Today</button>
+        <button type="button" class="top-cal" id="top-cal" aria-label="Choose a date from the calendar" aria-haspopup="dialog" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></button>
+      </div>
     </div>
   </header>
 
@@ -39,11 +43,9 @@
         <button type="button" class="today-btn" id="date-today" hidden>Today</button>
       </div>
       <div class="day-bar" id="day-bar">
-        <div class="day-head">
-          <button type="button" class="month-btn" id="month-btn" aria-haspopup="dialog" aria-expanded="false"><span id="month-label"></span><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
-          <button type="button" class="today-btn" id="day-today" hidden>Today</button>
-        </div>
+        <button type="button" class="day-arrow" id="day-prev" aria-label="Previous day"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button>
         <div class="day-strip" id="day-strip" aria-label="Pick a day"></div>
+        <button type="button" class="day-arrow" id="day-next" aria-label="Next day"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button>
       </div>
       <div class="pk-pop" id="pk-pop" role="dialog" aria-label="Calendar" hidden></div>
       <div class="event-strip" id="event-strip" aria-label="Events on the selected date"></div>

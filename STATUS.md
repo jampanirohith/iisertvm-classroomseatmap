@@ -1,8 +1,9 @@
 # Project status
 
-Updated: 2026-11-16
+Updated: 2026-11-20
 
 ## Done
+- Phone classroom page made less crowded: the month row is gone; a calendar button sits at the top right of the classroom name bar (opens the month calendar; a Today link appears beside it when another day is chosen). The day strip has an arrow at the left and right corner to move one day at a time. Text, tiles, event cards, footer and legend are smaller, and the header is slimmer. The seat map keeps opening at the readable size; the fit button and the pull-up events bar show the whole room.
 - Softer seat map: seats are rounded like small chairs (rounder at the top) with a faint shadow, a bit more space between seats and rows, rounded stairs and aisles, a pill-shaped board and door labels, gentle pastel tones (translucent in dark mode). Seats lift slightly when hovered, your seat has a soft glow, and taken seats are a quiet flat grey. Layout and numbers are unchanged.
 - Jupiter seating corrected: it now has the same arrangement as Venus (seat 1 at the audience's right, numbers snaking from row to row, front door on the right), instead of the mirror image it had before. Seat numbers are unchanged, so existing seat marks stay on the same numbers.
 - No header bar, title or logo on the home, interactive map and admin pages. Navigation is plain text links in a footer at the bottom of the page: home shows Interactive map and Admin; the map and admin pages link back to Classrooms and the other page. The logo is still used as the browser tab and installed app icon.
@@ -18,7 +19,7 @@ Updated: 2026-11-16
 - Plain, flat look on every page (no glass, blur, gradients or serif headings). It follows the device setting (light or dark); no theme button.
 - Seat map redrawn as plain numbered boxes: free, marked and yours.
 - Home page: a search box for classes and exams (course code with or without a space, hall, teacher, date such as "25 Nov", or today/tomorrow), with All/Classes/Exams filters. Below it: the classrooms (with today's count) and My events.
-- Phone room page: month name plus a scrolling strip of day tiles (weekday, date, dot where events exist) with Today; replaces the old date row. The seat map opens at a readable size instead of the whole room; the fit button toggles whole room / readable.
+- Phone room page: a scrolling strip of day tiles (weekday, date, dot where events exist) replaces the old date row.
 - Event names are shown in full (they wrap) in the event row, event details and lists.
 - Admin calendar styling repaired (the weekly grid lost its day columns in the previous patch). A test now checks every calendar class is styled.
 - Admin add-event: a clash now lists the events in the way, and the admin can replace them in one step (co-admins cannot).

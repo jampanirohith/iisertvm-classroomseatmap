@@ -241,8 +241,7 @@
   const DAY_SPAN = 30;
   function renderDays() {
     const strip = $('day-strip'), today = todayISO(), withEvents = new Set(state.events.map(e => e.date)), base = parseDate(state.date);
-    $('month-label').textContent = base ? `${part(base, { month: 'long' })} ${base.getFullYear()}` : '';
-    $('month-btn').setAttribute('aria-expanded', String(!$('pk-pop').hidden));
+    $('top-cal').setAttribute('aria-expanded', String(!$('pk-pop').hidden));
     let html = '';
     for (let n = -DAY_SPAN; n <= DAY_SPAN; n++) {
       const date = addDays(state.date, n), d = parseDate(date), on = n === 0;
@@ -261,7 +260,7 @@
       const date = addDays(state.date, n), d = parseDate(date), mid = n === 0;
       return `<button type="button" class="date-pill${mid ? ' selected' : ''}" data-date="${esc(date)}" data-mid="${mid}" aria-label="${esc(dateLong(date))}${mid ? ', open calendar' : ''}" ${mid ? 'aria-haspopup="dialog" aria-expanded="' + !$('pk-pop').hidden + '"' : ''}><span>${esc(d ? part(d, { weekday: 'short' }) : '')}</span><b>${esc(dayLabel(date))}${mid ? calIcon : ''}</b></button>`;
     }).join('');
-    $('date-today').hidden = $('day-today').hidden = state.date === todayISO();
+    $('date-today').hidden = $('top-today').hidden = state.date === todayISO();
     updateSummary();
     renderDays();
     if (!$('pk-pop').hidden) renderCal();
@@ -408,7 +407,7 @@
     if (month) { const d = parseDate(calMonth); d.setDate(1); d.setMonth(d.getMonth() + Number(month.dataset.month)); calMonth = LHC_FMT.isoOf(d); renderCal(); }
     if (pick) { $('pk-pop').hidden = true; goDate(pick.dataset.pick); }
   });
-  document.addEventListener('click', e => { if (!$('pk-pop').hidden && e.target.isConnected && !e.target.closest('.date-nav, .day-bar, .pk-pop')) toggleCal(false); });
+  document.addEventListener('click', e => { if (!$('pk-pop').hidden && e.target.isConnected && !e.target.closest('.date-nav, .day-bar, .pk-pop, .top-tools')) toggleCal(false); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('pk-pop').hidden) toggleCal(false); });
   $('event-strip').addEventListener('click', e => {
     const mark = e.target.closest('[data-bookmark]');
@@ -423,8 +422,13 @@
     const tile = e.target.closest('[data-day]');
     if (tile) { $('pk-pop').hidden = true; goDate(tile.dataset.day); }
   });
-  $('month-btn').addEventListener('click', () => toggleCal());
-  $('day-today').addEventListener('click', () => { $('pk-pop').hidden = true; goDate(todayISO()); });
+  $('top-cal').addEventListener('click', () => {
+    if ($('event-bar').classList.contains('collapsed')) setCollapsed(false, true);
+    toggleCal();
+  });
+  $('top-today').addEventListener('click', () => { $('pk-pop').hidden = true; goDate(todayISO()); });
+  $('day-prev').addEventListener('click', () => goDate(addDays(state.date, -1)));
+  $('day-next').addEventListener('click', () => goDate(addDays(state.date, 1)));
   $('date-today').addEventListener('click', () => { $('pk-pop').hidden = true; goDate(todayISO()); });
   $('strip-left').addEventListener('click', () => goDate(addDays(state.date, -1)));
   $('strip-right').addEventListener('click', () => goDate(addDays(state.date, 1)));
