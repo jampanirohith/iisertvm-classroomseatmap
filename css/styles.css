@@ -82,6 +82,7 @@ dialog { width: calc(100% - 28px); max-width: 460px; max-height: calc(100dvh - 2
 dialog::backdrop { background: var(--scrim); }
 dialog h2 { font-size: 18px; }
 .seat-who { margin: 10px 0 4px; font-size: 16px; overflow-wrap: anywhere; }
+.seat-note { margin: 12px 0 0; padding: 10px 12px; border-radius: 8px; background: var(--soft); color: var(--ink); font-size: 14px; }
 .dialog-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 18px; }
 #toast { position: fixed; left: 50%; bottom: 24px; z-index: 30; max-width: calc(100% - 32px); padding: 10px 16px; border-radius: 6px; background: var(--ink); color: var(--bg); font-size: 14px; opacity: 0; transform: translate(-50%, 8px); pointer-events: none; transition: opacity .15s, transform .15s; }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
@@ -145,31 +146,52 @@ dialog h2 { font-size: 18px; }
 .my-remove svg, .chip-mark svg, .bookmark-btn svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
 [aria-pressed="true"] > svg { fill: currentColor; }
 
-/* ---------- floor plan page ---------- */
-/* The map keeps the colours of the printed floor plan in light and dark mode; the rest of the page follows the device. */
-.map-card { --m-board: #ffffff; --m-lobby: #e4e5e8; --m-stairs: #f1f2f4; --m-edge: #c9c3c7; --m-ink: #2b2540; --m-sub: #4b4561;
-  --m-a: #f2f0d0; --m-b: #ebdad5; --m-c: #e4d6dd; --m-wash: #cde0cf; --m-lift: #dd4b5b; --m-hover: #dbe6ff;
-  overflow-x: auto; margin-top: 18px; padding: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--m-board); }
-.lhc-map-svg { display: block; width: 100%; min-width: 640px; height: auto; }
+/* ---------- interactive map page ---------- */
+.map-tabs { display: inline-flex; gap: 2px; margin-top: 16px; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); }
+.map-tab { border: 0; border-radius: 8px; padding: 8px 16px; background: transparent; color: var(--muted); font-size: 14px; font-weight: 600; line-height: 1.2; }
+.map-tab:hover { color: var(--ink); }
+.map-tab[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, .14); }
+@media (prefers-color-scheme: dark) { .map-tab[aria-pressed="true"] { background: rgba(255, 255, 255, .14); box-shadow: none; } }
+/* The map is drawn like the printed floor plan: a pale sheet with pastel rooms, in light and dark mode alike. */
+.map-card { --m-sheet: #f5f6f7; --m-ink: #1d2540; --m-mauve: #c9b8c1; --m-tan: #d5c5b4; --m-blue: #a9c3d7; --m-wash: #a9c8b4; --m-lobby: #d3dad8;
+  --m-lift: #c33c52; --m-hover: #dbe6ff; --m-focus: #1d4ed8;
+  --m-serif: "Palatino Linotype", Palatino, "Book Antiqua", "URW Palladio L", Georgia, "Times New Roman", serif;
+  margin-top: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--m-sheet); overflow: hidden; color-scheme: light; }
+.lhc-map-svg { display: block; width: 100%; height: auto; font-family: var(--sans); -webkit-user-select: none; user-select: none; }
+.room-fill { stroke: none; }
+.tone-mauve { fill: var(--m-mauve); }
+.tone-tan { fill: var(--m-tan); }
+.tone-blue { fill: var(--m-blue); }
+.fp-lobby-fill { fill: var(--m-lobby); }
+.fp-wash-fill { fill: var(--m-wash); }
+.wall, .thin { fill: none; stroke: var(--m-ink); stroke-linejoin: round; stroke-linecap: round; }
+.wall { stroke-width: 2.4; }
+.thin { stroke-width: 1.1; stroke-linecap: butt; }
+.fp-lift { fill: var(--m-lift); }
+.fp-lift-text { fill: #fff; font: 800 12px var(--sans); letter-spacing: .03em; }
+.fp-sign { fill: var(--m-ink); font: 800 12.5px var(--sans); letter-spacing: .04em; paint-order: stroke fill; stroke: var(--m-sheet); stroke-width: 3px; stroke-linejoin: round; }
+.fp-serif { fill: var(--m-ink); font-family: var(--m-serif); }
+.fp-wash { font-size: 23px; font-weight: 500; }
+.fp-lobby { font-size: 20px; font-weight: 500; }
+.fp-name { fill: var(--m-ink); font: 500 26px var(--m-serif); }
+.fp-cap { fill: var(--m-ink); font: 400 18px var(--m-serif); }
+.fp-pname { fill: var(--m-ink); font: 500 21px var(--m-serif); }
+.fp-pname.long { font-size: 17px; }
+.fp-pcap { fill: var(--m-ink); font: 400 15.5px var(--m-serif); }
 .room-hit { cursor: pointer; }
 .room-hit:focus { outline: none; }
-.fp-bg { fill: var(--m-board); stroke: var(--m-edge); stroke-width: 2; }
-.fp-floor { fill: #ffffff; stroke: var(--m-edge); stroke-width: 1.5; }
-.fp-lobby { fill: var(--m-lobby); stroke: var(--m-edge); stroke-width: 1.5; }
-.fp-service { fill: var(--m-stairs); stroke: var(--m-edge); stroke-width: 1.5; }
-.room-shape { stroke: var(--m-edge); stroke-width: 1.5; }
-.room-shape.tone-a { fill: var(--m-a); }
-.room-shape.tone-b { fill: var(--m-b); }
-.room-shape.tone-c { fill: var(--m-c); }
-.room-hit:hover .room-shape, .room-hit:focus-visible .room-shape { fill: var(--m-hover); stroke: #1d4ed8; stroke-width: 3; }
-.fp-name { fill: var(--m-ink); font: 600 34px var(--sans); pointer-events: none; }
-.fp-cap { fill: var(--m-sub); font: 400 22px var(--sans); pointer-events: none; }
-.fp-label { fill: var(--m-ink); font: 500 22px var(--sans); }
-.fp-sign { fill: var(--m-ink); font: 700 16px var(--sans); letter-spacing: .1em; }
-.fp-lift { fill: var(--m-lift); }
-.fp-lift-text { fill: #ffffff; font: 700 12px var(--sans); letter-spacing: .05em; pointer-events: none; }
-.fp-door { fill: none; stroke: var(--m-edge); stroke-width: 2; stroke-linecap: round; pointer-events: none; }
-.fp-wash { fill: var(--m-wash); stroke: var(--m-edge); stroke-width: 1.5; }
+.room-hit:hover .room-fill, .room-hit:focus-visible .room-fill { fill: var(--m-hover); }
+.room-hit:hover .room-line, .room-hit:focus-visible .room-line { stroke: var(--m-focus); stroke-width: 3.6; }
+@media (max-width: 759px) {
+  .map-tabs { display: flex; }
+  .map-tab { flex: 1; }
+  .map-card { margin-left: -14px; margin-right: -14px; border-left: 0; border-right: 0; border-radius: 0; }
+  .wall { stroke-width: 3.4; }
+  .thin { stroke-width: 1.6; }
+  .room-hit:hover .room-line, .room-hit:focus-visible .room-line { stroke-width: 5; }
+  .fp-name { font-size: 32px; }
+  .fp-cap { font-size: 22px; }
+}
 
 /* ---------- classroom page ---------- */
 body.room-page { display: flex; flex-direction: column; min-height: 0; height: 100vh; height: 100dvh; overflow: hidden; }
@@ -233,7 +255,6 @@ body.room-page { display: flex; flex-direction: column; min-height: 0; height: 1
 .map-scroll { position: relative; flex: 1; display: flex; align-items: flex-start; min-height: 0; padding: 22px 18px 30px; overflow: auto; overscroll-behavior: contain; touch-action: pan-x pan-y; scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
 .map-sizer { flex: 0 0 auto; margin: 0 auto; }
 .pending { margin: auto; max-width: 420px; padding: 28px; text-align: center; color: var(--muted); }
-.pending h2 { margin-bottom: 6px; color: var(--ink); }
 .zoom-tools { position: absolute; right: 14px; bottom: 16px; z-index: 5; display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--line-strong); border-radius: 8px; background: var(--surface); }
 .zoom-tools button { display: grid; place-items: center; width: 42px; height: 42px; padding: 0; border: 0; background: transparent; color: var(--ink); }
 .zoom-tools button + button { border-top: 1px solid var(--line); }
@@ -330,6 +351,12 @@ fieldset.field { padding: 0; border: 0; min-width: 0; }
 .option:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
 .option strong { display: block; font-size: 15px; }
 .option small { color: var(--muted); font-size: 13px; }
+/* "Notify me 15 minutes before the exam" row in the seat boxes. */
+.remind { margin: 14px 0 0; }
+.remind input { flex: none; width: 18px; height: 18px; margin-top: 2px; }
+.remind small { display: block; margin-top: 2px; line-height: 1.4; }
+.remind:has(input:disabled) { cursor: default; }
+.remind:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 .coadmin-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 6px; }
 .coadmin-item { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); }
 .coadmin-item span { flex: 1 1 160px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; font-size: 14px; }
@@ -441,7 +468,7 @@ body.room-page #toast { bottom: 140px; }
   .map-scroll.whole .map-sizer { margin: auto; }
 
   /* Pull-up handle: collapses the dates and events so the seat map gets the whole screen. */
-  .bar-handle { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 18px; padding: 2px 14px 5px; border: 0; background: transparent; color: var(--muted); text-align: left; }
+  .bar-handle { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 24px; padding: 4px 14px 8px; border: 0; background: transparent; color: var(--muted); text-align: left; }
   .grab { width: 40px; height: 4px; border-radius: 2px; background: var(--line-strong); }
   .bar-sum, .bar-chev { display: none; }
   .event-bar.collapsed .event-bar-inner { display: none; }

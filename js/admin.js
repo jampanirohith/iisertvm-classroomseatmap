@@ -369,6 +369,7 @@
     } catch (error) { setMessage($('mode-message'), error.message, 'error'); }
     loadCoadmins();
   }
+
   $('mode-options').addEventListener('change', async event => {
     const input = event.target.closest('input[name="mode"]');
     if (!input) return;

@@ -1,6 +1,6 @@
 (function () {
   'use strict';
-  const K = { events: 'lhc-events-v4', bookings: 'lhc-bookings-v4', mine: 'lhc-my-seats-v4', bookmarks: 'lhc-bookmarks-v1' };
+  const K = { events: 'lhc-events-v4', bookings: 'lhc-bookings-v4', mine: 'lhc-my-seats-v4', bookmarks: 'lhc-bookmarks-v1', device: 'lhc-device-v1' };
   const read = (key, fallback) => { try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch { return fallback; } };
   const write = (key, value) => { try { localStorage.setItem(key, JSON.stringify(value)); return true; } catch (error) { throw new Error('Browser storage is unavailable or full. Free some space and try again.'); } };
   const bookingKey = (eventId, seatId) => `${eventId}::${seatId}`;
@@ -12,8 +12,29 @@
   });
 
   let client = null;
+  let initPromise = null;
   const listeners = new Set();
   const emit = change => listeners.forEach(fn => { try { fn(change); } catch (error) { console.error(error); } });
+
+  // ---------- this device ----------
+  // A random code that stays on this device. The database keeps only a one-way fingerprint of it (different for every
+  // exam), so it can tell that the same device already marked a seat for an exam without knowing who anyone is.
+  let memoryCode = null;
+  function deviceCode() {
+    try {
+      const saved = localStorage.getItem(K.device);
+      if (saved && /^[0-9a-f]{32}$/.test(saved)) return saved;
+    } catch { /* storage blocked: use a code that lasts until the page closes */ }
+    if (!memoryCode) {
+      const bytes = new Uint8Array(16);
+      if (window.crypto && window.crypto.getRandomValues) window.crypto.getRandomValues(bytes);
+      else for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+      memoryCode = Array.from(bytes, b => b.toString(16).padStart(2, '0')).join('');
+    }
+    try { localStorage.setItem(K.device, memoryCode); } catch { /* keep the in-memory copy */ }
+    return memoryCode;
+  }
+  const missingColumn = error => Boolean(error) && (error.code === 'PGRST204' || /owner_token/.test(String(error.message || '')));
 
   function loadLibrary() {
     if (window.supabase && window.supabase.createClient) return Promise.resolve();
@@ -60,7 +81,9 @@
   const Store = {
     bookmarks: Bookmarks,
     // Returns { shared, error }. Without a Supabase configuration everything is kept in this browser.
-    async init() {
+    // Several scripts on one page may call it: the connection is made once.
+    init() { if (!initPromise) initPromise = Store._connect(); return initPromise; },
+    async _connect() {
       try { if (window.SUPABASE_CONFIG_READY) await window.SUPABASE_CONFIG_READY; } catch { /* fallback to local mode */ }
       const cfg = window.SUPABASE_CONFIG;
       const publishableKey = cfg && (cfg.publishableKey || cfg.anonKey);
@@ -167,20 +190,56 @@
       return out;
     },
 
+    // One seat per student per exam. Returns { ok: true }, or { ok: false, reason: 'taken' | 'already', seat? }:
+    // 'taken' when someone else has that seat, 'already' when this device already marked a seat for the exam.
     async book(eventId, seatId, name) {
+      eventId = String(eventId);
+      const key = bookingKey(eventId, seatId);
       if (client) {
-        const { error } = await client.from('seat_marks').insert({ event_id: eventId, seat_id: seatId, display_name: name });
-        if (error) { if (error.code === '23505') return { ok: false, reason: 'taken' }; throw error; }
+        const row = { event_id: eventId, seat_id: seatId, display_name: name, owner_token: deviceCode() };
+        let { error } = await client.from('seat_marks').insert(row);
+        if (missingColumn(error)) {
+          // The database has not been updated with the one-seat rule yet (run supabase/schema.sql): this browser enforces it meanwhile.
+          const have = Store.mySeats(eventId);
+          if (have.length) return { ok: false, reason: 'already', seat: have[0] };
+          delete row.owner_token;
+          ({ error } = await client.from('seat_marks').insert(row));
+        }
+        if (error) {
+          if (error.code === '23514') return { ok: false, reason: 'already', seat: Store.mySeats(eventId)[0] };
+          if (error.code === '23505') return { ok: false, reason: 'taken' };
+          throw error;
+        }
       } else {
+        const have = Store.mySeats(eventId);
+        if (have.length) return { ok: false, reason: 'already', seat: have[0] };
         const all = read(K.bookings, {});
-        const key = bookingKey(eventId, seatId);
         if (all[key]) return { ok: false, reason: 'taken' };
         all[key] = { name };
         write(K.bookings, all);
       }
       const mine = new Set(read(K.mine, []));
-      mine.add(bookingKey(eventId, seatId));
+      mine.add(key);
       write(K.mine, [...mine]);
+      return { ok: true };
+    },
+
+    // Unmarks a seat this device marked, so another can be chosen. Returns { ok: true } or { ok: false, reason: 'not-yours' }
+    // (also for seats marked before the one-seat rule, which have no fingerprint to prove they are ours).
+    async release(eventId, seatId) {
+      eventId = String(eventId);
+      const key = bookingKey(eventId, seatId);
+      if (!read(K.mine, []).includes(key)) return { ok: false, reason: 'not-yours' };
+      if (client) {
+        const { data, error } = await client.rpc('release_seat', { p_event: eventId, p_seat: seatId, p_token: deviceCode() });
+        if (error) throw error;
+        if (!data) return { ok: false, reason: 'not-yours' };
+      } else {
+        const all = read(K.bookings, {});
+        delete all[key];
+        write(K.bookings, all);
+      }
+      write(K.mine, read(K.mine, []).filter(k => k !== key));
       return { ok: true };
     },
 

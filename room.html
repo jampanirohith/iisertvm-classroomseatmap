@@ -65,6 +65,11 @@
       <h2>Mark seat <span id="seat-no"></span></h2>
       <p class="muted small" id="seat-event"></p>
       <label class="field">Your name or initials<input id="seat-name" maxlength="30" autocomplete="name" required></label>
+      <label class="option remind" id="seat-remind-row" hidden>
+        <input type="checkbox" id="seat-remind">
+        <span><strong>Notify me 15 minutes before the exam</strong><small id="seat-remind-hint"></small></span>
+      </label>
+      <p class="muted small">You can mark one seat for this exam. Unmark it later if you want a different seat.</p>
       <div class="dialog-actions">
         <button type="button" class="btn" data-close>Cancel</button>
         <button type="submit" class="btn primary">Mark my seat</button>
@@ -76,7 +81,12 @@
     <h2>Seat <span id="info-no"></span></h2>
     <p class="seat-who" id="info-line"></p>
     <p class="muted small" id="info-event"></p>
-    <div class="dialog-actions"><button type="button" class="btn primary" data-close>Close</button></div>
+    <p class="seat-note" id="info-note" hidden></p>
+    <label class="option remind" id="info-remind-row" hidden>
+      <input type="checkbox" id="info-remind">
+      <span><strong>Notify me 15 minutes before the exam</strong><small id="info-remind-hint"></small></span>
+    </label>
+    <div class="dialog-actions"><button type="button" class="btn" id="info-unmark" hidden>Unmark seat</button><button type="button" class="btn primary" data-close>Close</button></div>
   </dialog>
 
   <div id="toast" role="status" aria-live="polite"></div>
@@ -84,6 +94,7 @@
   <script src="js/format.js"></script>
   <script src="js/data.js"></script>
   <script src="js/store.js"></script>
+  <script src="js/notify.js"></script>
   <script src="js/cheer.js"></script>
   <script src="js/room.js"></script>
   <script src="js/pwa.js"></script>

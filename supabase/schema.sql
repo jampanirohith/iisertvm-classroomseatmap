@@ -37,6 +37,15 @@ create table if not exists public.seat_marks (
   unique (event_id, seat_id)
 );
 
+-- One seat per student per exam. The browser sends a random code that stays on the student's device in owner_token.
+-- The trigger below turns it into a one-way fingerprint (owner_hash, different for every exam) and clears owner_token,
+-- so the database can see that the same device already marked a seat without ever storing who anyone is.
+alter table public.seat_marks add column if not exists owner_token text;
+alter table public.seat_marks add column if not exists owner_hash text;
+create index if not exists seat_marks_owner_idx on public.seat_marks (event_id, owner_hash) where owner_hash is not null;
+-- Lets live updates say which exam a removed seat mark belonged to.
+alter table public.seat_marks replica identity full;
+
 alter table public.events add column if not exists event_type text not null default 'other';
 alter table public.events add column if not exists professor text;
 alter table public.events add column if not exists description text;
@@ -89,6 +98,19 @@ begin
   if exists (select 1 from public.app_settings s where s.key = 'seat_marking' and s.value = 'off') then
     raise exception 'Seat marking is turned off' using errcode = '22023';
   end if;
+  -- Each student device may mark one seat per exam (marks made before this rule have no fingerprint and are left alone).
+  new.owner_hash := null;
+  if new.owner_token is not null and btrim(new.owner_token) <> '' then
+    if length(new.owner_token) < 16 then
+      raise exception 'Invalid device code' using errcode = '22023';
+    end if;
+    new.owner_hash := encode(sha256(convert_to(new.owner_token || ':' || new.event_id::text, 'UTF8')), 'hex');
+    perform pg_advisory_xact_lock(hashtextextended('owner:' || new.owner_hash, 0));
+    if exists (select 1 from public.seat_marks m where m.event_id = new.event_id and m.owner_hash = new.owner_hash) then
+      raise exception 'You have already marked a seat for this exam' using errcode = '23514';
+    end if;
+  end if;
+  new.owner_token := null;
   -- Exams of different courses can share a hall at the same time, so they share its seats: one mark per seat.
   perform pg_advisory_xact_lock(hashtextextended('seat:' || (select e.room_id || ':' || e.event_date from public.events e where e.id = new.event_id) || ':' || new.seat_id, 0));
   if exists (
@@ -106,6 +128,25 @@ begin
 end $$;
 drop trigger if exists seat_marks_guard on public.seat_marks;
 create trigger seat_marks_guard before insert on public.seat_marks for each row execute function public.seat_marks_guard();
+
+-- A student can unmark their own seat (to pick another one): only the device that marked it can remove it.
+-- Returns true when a seat mark was removed. Refused while the admin has seat marking turned off.
+create or replace function public.release_seat(p_event uuid, p_seat text, p_token text) returns boolean
+language plpgsql security definer set search_path = public as $$
+declare removed integer;
+begin
+  if exists (select 1 from public.app_settings s where s.key = 'seat_marking' and s.value = 'off') then
+    raise exception 'Seat marking is turned off' using errcode = '22023';
+  end if;
+  if p_token is null or length(p_token) < 16 then return false; end if;
+  delete from public.seat_marks m
+   where m.event_id = p_event and m.seat_id = p_seat
+     and m.owner_hash = encode(sha256(convert_to(p_token || ':' || p_event::text, 'UTF8')), 'hex');
+  get diagnostics removed = row_count;
+  return removed > 0;
+end $$;
+revoke all on function public.release_seat(uuid, text, text) from public;
+grant execute on function public.release_seat(uuid, text, text) to anon, authenticated;
 
 -- Classes and other events need their classroom to themselves: two of them can never overlap, even if two people save at the
 -- same moment, and an exam cannot overlap them either. Exams of different courses may share a hall at the same time (they

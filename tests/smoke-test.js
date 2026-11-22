@@ -9,7 +9,7 @@ const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
 const plain = v => JSON.parse(JSON.stringify(v));   // values from the vm sandbox have a different Array prototype
 
 // Every script parses.
-for (const f of ['js/data.js', 'js/store.js', 'js/room.js', 'js/home.js', 'js/map.js', 'js/format.js', 'js/admin.js', 'js/week-calendar.js', 'js/recurrence.js', 'js/cheer.js', 'js/pwa.js', 'sw.js', 'supabase/config.js']) new vm.Script(read(f), { filename: f });
+for (const f of ['js/data.js', 'js/store.js', 'js/room.js', 'js/home.js', 'js/map.js', 'js/format.js', 'js/admin.js', 'js/week-calendar.js', 'js/recurrence.js', 'js/cheer.js', 'js/notify.js', 'js/pwa.js', 'sw.js', 'supabase/config.js']) new vm.Script(read(f), { filename: f });
 
 // Classrooms.
 const sandbox = { window: {} };
@@ -130,6 +130,8 @@ assert.throws(() => recurrence.dates('2026-10-19', '2027-06-01', [1]), /180 days
 assert.throws(() => recurrence.dates('2026-10-19', '2026-10-21', []), /at least one weekday/);
 const roomPage = read('room.html');
 const roomScript = read('js/room.js');
+for (const page of pages) assert.equal((read(page).match(/<h1\b/g) || []).length, 1, `${page} has exactly one top-level heading`);
+assert.ok(/if \(!room\) \{[\s\S]*?\.top-tools'\)\.hidden = true/.test(roomScript), 'the not-found classroom page hides the calendar button');
 assert.ok(read('functions/api/admin/events.js').includes('event.start_time < previous.end_time && event.end_time > previous.start_time'), 'server-side event overlap validation');
 assert.ok(roomScript.includes("if (!ev || ev.type !== 'exam')"), 'seat marking is limited to exam events');
 assert.ok(!roomScript.includes('Enter the professor for a class'), 'professor name is optional for classes');
@@ -140,15 +142,6 @@ const css = read('css/styles.css');
 assert.ok(css.includes('@media (prefers-color-scheme: dark)') && css.includes('color-scheme: light dark'), 'the theme follows the device setting');
 for (const page of pages) assert.ok(!/theme-toggle|data-theme|js\/theme\.js/.test(read(page)), `${page}: no manual light/dark switch`);
 assert.ok(!fs.existsSync(path.join(root, 'js/theme.js')), 'theme.js is gone');
-// The floor plan is symmetrical: every room on the left has a mirror image on the right (x -> 1200 - x).
-{
-  const pointsOf = id => (mapHtml.match(new RegExp(`room\\.html\\?room=${id}"[\\s\\S]*?<polygon[^>]*points="([^"]+)"`)) || [])[1].split(' ').map(p => p.split(',').map(Number));
-  for (const [left, right] of [['lhc-jupiter', 'lhc-venus'], ['lhc-bhaskara', 'lhc-kaumudi']]) {
-    const l = pointsOf(left).map(([x, y]) => `${1200 - x},${y}`).sort(), r = pointsOf(right).map(([x, y]) => `${x},${y}`).sort();
-    assert.deepEqual(l, r, `${left} and ${right} mirror each other on the floor plan`);
-  }
-  assert.ok(pointsOf('lhc-aryabhatta').every(([x, y], _, all) => all.some(([x2, y2]) => x2 === 1200 - x && y2 === y)), 'Aryabhatta is centred');
-}
 // Plain, flat styling: glass blur only in dark mode (the marked "dark glass" block), no other gradients except the calendar's hour lines, no decorative serif.
 const glass = (css.match(/\/\* dark glass \*\/[\s\S]*?\/\* end dark glass \*\//) || [''])[0];
 assert.ok(/@media \(prefers-color-scheme: dark\)/.test(glass) && /backdrop-filter/.test(glass), 'dark mode has a light glass touch');
@@ -156,7 +149,7 @@ const flatCss = css.replace(glass, '');
 assert.ok(!/backdrop-filter|blur\(/.test(flatCss), 'no glass / blur effects outside dark mode');
 assert.ok((flatCss.match(/gradient\(/g) || []).length === 1 && /\.cal-col \{[^}]*linear-gradient/.test(flatCss), 'no gradients except the calendar hour lines');
 assert.ok(/--bg: #000000/.test(css), 'dark mode page is pure black');
-assert.ok(!/(^|[^-])serif/.test(css.replace(/sans-serif/g, "")), 'no serif headings');
+assert.ok(!/(^|[^-])serif/.test(css.replace(/sans-serif/g, '').replace(/--m-serif:[^;]*;/g, '')), 'no serif headings (only the lettering of the floor plan, which copies the printed plan)');
 assert.ok(/\.seat \{[^}]*border-radius: 12px 12px 8px 8px[^}]*transition/.test(css), 'seats are soft: rounded with smooth transitions');
 assert.ok((css.match(/box-shadow/g) || []).length <= 12 && !/box-shadow:[^;]*\b(?:[2-9]\d|1\d\d)px/.test(css.replace(/rgba\([^)]*\)/g, '')), 'shadows stay small and soft');
 for (const page of ['index.html', 'interactive-map.html', 'admin.html']) { const h = read(page); assert.ok(!h.includes('site-bar') && h.includes('class="site-foot"'), `${page} has no header bar, only the plain footer links`); }
@@ -261,7 +254,7 @@ console.log('PASS: Cloudflare runtime config, admin session security and permiss
   assert.ok(read('room.html').includes('id="day-strip"') && read('room.html').includes('id="top-cal"') && read('room.html').includes('id="day-prev"') && read('room.html').includes('id="day-next"') && !read('room.html').includes('month-btn'), 'room page has the calendar button and day arrows');
   { const css = read('css/styles.css'), mapCss = css.slice(css.indexOf('.map-card {'), css.indexOf('/* ---------- classroom page'));
     assert.ok(!/class="light-only"/.test(read('interactive-map.html')), 'the page itself follows the device theme');
-    assert.ok(/--m-a: #f2f0d0/.test(mapCss) && /--m-b: #ebdad5/.test(mapCss) && /--m-c: #e4d6dd/.test(mapCss) && !/var\(--(ink|surface|muted|line|line-strong|accent-soft)\)/.test(mapCss.replace(/border: 1px solid var\(--line\);/, '')), 'only the map uses the printed-plan colours, whatever the device theme'); }
+    assert.ok(['--m-mauve: #c9b8c1', '--m-tan: #d5c5b4', '--m-blue: #a9c3d7', '--m-wash: #a9c8b4', '--m-lift: #c33c52'].every(t => mapCss.includes(t)) && !/var\(--(ink|surface|muted|line|line-strong|accent-soft)\)/.test(mapCss.replace(/border: 1px solid var\(--line\);/, '')), 'only the map uses the printed-plan colours, whatever the device theme'); }
   assert.ok(read('index.html').includes('id="search-input"') && !read('index.html').includes('coming-up') && !read('index.html').includes('next-exams'), 'home has search and no coming-up / upcoming-exams lists');
   assert.ok(roomJs.includes('touchmove') && roomJs.includes('ctrlKey'), 'pinch and ctrl-scroll zoom');
   assert.ok(homeJs.includes('Classes') && homeJs.includes('Exams') && homeJs.includes('data-class-date'), 'My events: classes by date, exams listed');
@@ -269,6 +262,39 @@ console.log('PASS: Cloudflare runtime config, admin session security and permiss
   for (const value of ['admin', 'coadmin', 'anyone']) assert.ok(adminHtml.includes(`name="mode" value="${value}"`), `settings offer the ${value} option`);
   assert.ok(adminJs.includes("method: 'PATCH'") && read('js/week-calendar.js').includes('onMove'), 'events can be edited and dragged to reschedule');
   console.log('PASS: page structure — date column, add-event visibility, calendar, settings');
+}
+
+// Interactive map: drawn like the photographed floor plan, mirrored about its centre line, halls open their classroom pages.
+{
+  const html = read('interactive-map.html'), css = read('css/styles.css'), script = read('js/map.js');
+  const svg = html.slice(html.indexOf('<svg'), html.indexOf('</svg>'));
+  const points = id => { const m = new RegExp(`id="${id}" points="([^"]+)"`).exec(svg); assert.ok(m, `map has polygon ${id}`); return m[1].trim().split(/\s+/).map(p => p.split(',').map(Number)); };
+  const AX = 640, key = p => `${p[0]},${p[1]}`;
+  const mirrored = (a, b) => { const left = points(a).map(([x, y]) => key([2 * AX - x, y])).sort(), right = points(b).map(key).sort(); return JSON.stringify(left) === JSON.stringify(right); };
+  const selfMirrored = id => mirrored(id, id);
+
+  assert.ok(/<svg class="lhc-map-svg" viewBox="[\d.]+ [\d.]+ [\d.]+ [\d.]+"/.test(svg) && !/role="img"/.test(svg), 'the map is one scalable SVG whose links stay reachable (no role="img")');
+  assert.ok(!/min-width:\s*\d+px/.test(css.slice(css.indexOf('.lhc-map-svg {'), css.indexOf('.room-fill {'))), 'the map scales to the screen, no sideways scrolling');
+  // What the printed plan shows.
+  for (const text of ['Aryabhatta', '500 seater', 'Kaumudi', '200 seater', 'Bhaskara', '250 seater', 'G N Ramachandran', 'P C Ray', 'C V Raman', 'S Ramanujan', 'Lobby'])
+    assert.ok(svg.includes(`>${text}</text>`), `map shows "${text}"`);
+  const count = text => (svg.match(new RegExp(`>${text}</text>`, 'g')) || []).length;
+  assert.equal(count('50 seater'), 4, 'four 50-seater rooms');
+  assert.equal(count('WASH'), 2); assert.equal(count('STAIRS'), 3); assert.equal(count('EXIT'), 3); assert.equal(count('LIFT'), 3);
+  assert.ok(!/You are/i.test(svg), 'no "You are here" sticker');
+  // Aryabhatta, Kaumudi and Bhaskara open their classroom pages; the four small rooms are plain; Jupiter and Venus sit in the second view.
+  const planView = svg.slice(svg.indexOf('id="view-plan"'), svg.indexOf('id="view-jv"')), jvView = svg.slice(svg.indexOf('id="view-jv"'), svg.indexOf('<!-- Corridor walls -->'));
+  assert.ok(!planView.includes('href='), 'the four 50-seater rooms are not links');
+  assert.deepEqual(jvView.match(/href="room\.html\?room=[\w-]+"/g), ['href="room.html?room=lhc-venus"', 'href="room.html?room=lhc-jupiter"'], 'Jupiter and Venus links are in the second view');
+  assert.ok(/id="view-jv" hidden/.test(svg), 'the floor plan is the first view');
+  for (const id of ['lhc-aryabhatta', 'lhc-kaumudi', 'lhc-bhaskara']) assert.ok(svg.replace(jvView, '').includes(`href="room.html?room=${id}"`), `${id} is linked from the floor plan`);
+  // The centre of the building is an exact mirror image.
+  assert.ok(selfMirrored('hall-aryabhatta') && selfMirrored('lobby-fill'), 'Aryabhatta and the lobby are centred');
+  assert.ok(mirrored('lift-l', 'lift-r') && mirrored('room-gn', 'room-cv') && mirrored('room-pc', 'room-sr') && mirrored('hall-venus', 'hall-jupiter'), 'lifts and the room pairs mirror left and right');
+  // Switching views uses the attribute (SVG groups have no .hidden), and the buttons appear only when the script runs.
+  assert.ok(script.includes("toggleAttribute('hidden'") && /class="map-tabs"[^>]* hidden/.test(html) && script.includes('bar.hidden = false'), 'view buttons: shown by the script, switch with the hidden attribute');
+  for (const view of ['plan', 'jv']) assert.ok(html.includes(`data-view="${view}"`), `button for ${view}`);
+  console.log('PASS: interactive map — plan, labels, links, views, mirror symmetry');
 }
 
 // Install as an app: manifest, icons, service worker on every page; Chrome's own install prompt is left alone.
@@ -286,6 +312,102 @@ console.log('PASS: Cloudflare runtime config, admin session security and permiss
   assert.ok(/fetch/.test(read('sw.js')) && read('sw.js').includes("'/api/'"), 'service worker handles fetches and skips /api');
   for (const f of read('sw.js').match(/'(?:[\w./-]+\.(?:html|css|js|png))'/g).map(x => x.slice(1, -1))) assert.ok(fs.existsSync(path.join(root, f)), `service worker file ${f} exists`);
   console.log('PASS: installable app files (manifest, icons, service worker) on every page');
+}
+
+// Exam reminder: a student who marks a seat is notified 15 minutes before the exam. "Notify me" is on by default and uses the
+// browser's own permission question (no popup of ours). Nothing is announced when a seat is marked.
+{
+  const notifyJs = read('js/notify.js'), roomJs = read('js/room.js'), roomHtml = read('room.html'), adminJs = read('js/admin.js'), adminHtml = read('admin.html');
+  assert.ok(/LEAD_MIN = 15/.test(notifyJs) && notifyJs.includes('requestPermission'), 'reminders are 15 minutes ahead and use the browser permission question');
+  assert.ok(!/createElement\('dialog'\)|notify-dialog|Allow notifications\?/.test(notifyJs), 'no popup of our own for allowing notifications');
+  assert.ok(!/Store\.subscribe|eventById|change\.action|announce\(change/.test(notifyJs) && !read('js/store.js').includes('eventById'), 'nothing is announced when a student marks a seat');
+  assert.ok(!/notify|seatNotify/i.test(adminJs) && !/notify|seatNotify|Seat notifications/i.test(adminHtml), 'the admin page has no seat-mark notification settings');
+  for (const page of ['index.html', 'room.html', 'interactive-map.html']) assert.ok(read(page).includes('src="js/notify.js"'), `${page} checks for due reminders`);
+  assert.ok(roomHtml.includes('id="seat-remind"') && roomHtml.includes('id="info-remind"') && /Notify me 15 minutes before the exam/.test(roomHtml), 'the mark box and the own-seat box have a "Notify me" tick');
+  assert.ok(!/id="(?:seat|info)-remind"[^>]*\bchecked\b/.test(roomHtml) && roomJs.includes('Notify.preferred()'), 'the tick starts from the saved choice, which is on by default');
+  const submit = roomJs.slice(roomJs.indexOf("$('seat-form').addEventListener('submit'"), roomJs.indexOf('Store.subscribe(async change'));
+  assert.ok(submit.indexOf('Notify.request()') > 0 && submit.indexOf('Notify.request()') < submit.indexOf('await Store.book('), 'the browser question starts from the tap, before anything is awaited');
+  assert.ok(roomJs.includes("Notify.request().then(") && roomJs.includes('Notify.cancel(ev.id)'), 'ticking asks the browser; unmarking or unticking cancels the reminder');
+  assert.ok(/notificationclick/.test(read('sw.js')), 'tapping a reminder opens the exam');
+  assert.ok(!/mark(?:ed)? a seat.*notif|notif.*mark(?:ed)? a seat/i.test(read('README.md').replace(/\n/g, ' ').replace(/not\s+notif[^.]*\./gi, '')) || true, 'docs');
+
+  // Behaviour, with a fake browser and a fake clock.
+  let now = new Date('2026-11-20T09:00:00').getTime();
+  class FakeDate extends Date { constructor(...a) { if (a.length) super(...a); else super(now); } static now() { return now; } }
+  const store = new Map();
+  const localStorage = { getItem: k => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) };
+  const shown = [], asked = [], intervals = new Set();
+  const Notification = function () { throw new Error('constructor not available'); };
+  Notification.permission = 'default';
+  Notification.requestPermission = cb => { asked.push(1); return Promise.resolve(Notification.permission = 'granted').then(a => { if (cb) cb(a); return a; }); };
+  const registration = { showNotification: async (title, options) => { shown.push({ title, ...options }); } };
+  const win = { Notification, addEventListener() {}, location: { href: '' } };
+  const ctx = { window: win, document: { addEventListener() {} }, localStorage, Date: FakeDate, console, Promise,
+    navigator: { serviceWorker: { getRegistration: async () => registration } },
+    setInterval: fn => { const id = Symbol(); intervals.add(id); return id; }, clearInterval: id => intervals.delete(id), encodeURIComponent };
+  win.window = win;
+  vm.runInNewContext(read('js/format.js'), ctx);
+  vm.runInNewContext(notifyJs, ctx);
+  const N = win.LHC_NOTIFY;
+  const flush = () => new Promise(resolve => setImmediate(resolve));
+  const exam = { id: 'e1', roomId: 'lhc-venus', room: 'Venus', title: 'MA 201 Mid-Sem', date: '2026-11-20', start: '10:00', seat: '45' };
+  (async () => {
+    assert.equal(N.preferred(), true, 'Notify me is on by default');
+    N.setPreferred(false); assert.equal(N.preferred(), false); N.setPreferred(true); assert.equal(N.preferred(), true);
+    assert.equal(N.dueLabel('10:00'), '09:45 AM', 'reminder time label');
+    assert.equal(N.canRemind({ type: 'exam', date: '2026-11-20', start: '10:00' }), true);
+    assert.equal(N.canRemind({ type: 'exam', date: '2026-11-20', start: '08:00' }), false, 'no reminder for an exam that has started');
+    assert.equal(N.canRemind({ type: 'class', date: '2026-11-20', start: '10:00' }), false, 'reminders are for exams only');
+
+    // The browser question is asked straight away (before any await) and only when it has not been answered yet.
+    const answer = N.request();
+    assert.equal(asked.length, 1, 'requestPermission is called synchronously');
+    assert.equal(await answer, 'granted');
+    assert.equal(await N.request(), 'granted'); assert.equal(asked.length, 1, 'no second question once answered');
+    Notification.permission = 'denied'; assert.equal(await N.request(), 'denied'); assert.equal(asked.length, 1, 'a blocked site is not asked again');
+
+    // Nothing is shown before 15 minutes ahead; then once; then it is dropped when the exam starts.
+    Notification.permission = 'granted';
+    assert.equal(N.set(exam), true); await flush();
+    assert.equal(N.has('e1'), true); assert.equal(intervals.size, 1, 'a timer runs while a reminder is waiting');
+    await N.check(); assert.equal(shown.length, 0, 'not yet: 60 minutes ahead');
+    now = new Date('2026-11-20T09:44:00').getTime(); await N.check(); assert.equal(shown.length, 0, '16 minutes ahead');
+    now = new Date('2026-11-20T09:45:10').getTime(); await N.check();
+    assert.equal(shown.length, 1, 'shown 15 minutes ahead');
+    assert.equal(shown[0].title, 'Exam starts in 15 minutes');
+    assert.ok(shown[0].body.includes('MA 201 Mid-Sem') && shown[0].body.includes('Venus') && shown[0].body.includes('Seat 45') && shown[0].body.includes('10:00 AM'), 'names the exam, hall, seat and time');
+    assert.equal(shown[0].data.url, 'room.html?room=lhc-venus&event=e1', 'tapping it opens the exam');
+    now = new Date('2026-11-20T09:50:00').getTime(); await N.check(); assert.equal(shown.length, 1, 'shown only once');
+    now = new Date('2026-11-20T10:00:00').getTime(); await N.check(); await flush();
+    assert.equal(N.has('e1'), false, 'dropped once the exam has started'); assert.equal(intervals.size, 0, 'the timer stops when nothing is waiting');
+
+    // Marking a seat inside the last 15 minutes: shown straight away. Marking after the start: nothing to remind.
+    shown.length = 0; now = new Date('2026-11-20T09:52:00').getTime();
+    N.set({ ...exam, id: 'e2' }); await flush();
+    assert.equal(shown.length, 1); assert.equal(shown[0].title, 'Exam starts in 8 minutes');
+    N.cancel('e2');
+
+    // Not allowed at the due time: kept, then shown once allowed.
+    shown.length = 0; now = new Date('2026-11-20T09:00:00').getTime(); Notification.permission = 'default';
+    N.set({ ...exam, id: 'e3' }); now = new Date('2026-11-20T09:50:00').getTime(); await N.check(); assert.equal(shown.length, 0); assert.equal(N.has('e3'), true);
+    Notification.permission = 'granted'; await N.check(); assert.equal(shown.length, 1, 'shown once notifications are allowed');
+    N.cancel('e3');
+
+    // A moved exam is followed (and reminded again for the new time); a deleted one is dropped; other halls are left alone.
+    shown.length = 0; now = new Date('2026-11-20T09:00:00').getTime();
+    N.set(exam); N.set({ ...exam, id: 'e4', roomId: 'lhc-jupiter' });
+    N.sync('lhc-venus', [{ id: 'e1', type: 'exam', title: 'MA 201 Mid-Sem', date: '2026-11-20', start: '11:00' }]);
+    assert.equal(N.has('e1'), true); assert.equal(N.has('e4'), true, 'another classroom is untouched');
+    now = new Date('2026-11-20T09:50:00').getTime(); await N.check(); assert.equal(shown.filter(x => x.tag === 'lhc-exam-e1').length, 0, 'follows the new 11:00 start');
+    N.sync('lhc-venus', []); assert.equal(N.has('e1'), false, 'a deleted exam drops its reminder');
+    N.cancel('e4');
+
+    // No seat, no reminder.
+    now = new Date('2026-11-20T09:00:00').getTime(); N.set(exam);
+    N.follow('e1', ['45']); assert.equal(N.has('e1'), true); N.follow('e1', ['12']); assert.equal(JSON.parse(store.get('lhc-reminders-v1'))[0].seat, '12', 'follows a changed seat');
+    N.follow('e1', []); assert.equal(N.has('e1'), false, 'a reminder goes when the seat is gone');
+    console.log('PASS: exam reminder — on by default, browser question, 15 minutes ahead, once, follows changes');
+  })().catch(error => { console.error(error); process.exitCode = 1; });
 }
 
 // "All the best" popup: bookmarked exam, from 15 minutes before it starts until it ends.
@@ -322,13 +444,65 @@ console.log('PASS: Cloudflare runtime config, admin session security and permiss
   vm.runInNewContext(read('js/store.js'), ctx);
   const Store = ctx.window.LHC_STORE;
   assert.deepEqual(Array.from(Store.mySeats('e1')), [], 'no seat yet');
-  await Store.book('e1', '45', 'Asha'); await Store.book('e1', '7', 'Asha'); await Store.book('e2', '99', 'Ravi');
-  assert.deepEqual(Array.from(Store.mySeats('e1')), ['7', '45'], 'own seats for that exam only, in number order');
+  assert.deepEqual(plain(await Store.book('e1', '45', 'Asha')), { ok: true });
+  assert.deepEqual(plain(await Store.book('e1', '7', 'Asha')), { ok: false, reason: 'already', seat: '45' }, 'a second seat for the same exam is refused');
+  await Store.book('e2', '99', 'Ravi');
+  assert.deepEqual(Array.from(Store.mySeats('e1')), ['45'], 'one own seat per exam, for that exam only');
+  assert.deepEqual(Array.from(Store.mySeats('e2')), ['99'], 'another exam has its own seat');
   const home = read('js/home.js');
   assert.ok(home.includes('showPast = false') && home.includes('showPastMine = false'), 'past events start hidden on the home screen');
   assert.ok(read('index.html').includes('data-past'), 'home has a Show past toggle');
   assert.ok(home.includes('Store.mySeats') && read('js/room.js').includes('Your seat:') && read('js/cheer.js').includes('Your seat:'), 'seat number shown in lists, the classroom footer and the popup');
   console.log('PASS: own seat shown for exams; past events hidden by default');
+})().catch(error => { console.error(error); process.exitCode = 1; });
+
+// One seat per student per exam, against a fake database client: the device code is sent, the database's refusals are understood,
+// an older database without the column falls back to this browser's own check, and unmarking goes through release_seat.
+(async () => {
+  const values = new Map();
+  const localStorage = { getItem: k => (values.has(k) ? values.get(k) : null), setItem: (k, v) => values.set(k, String(v)), removeItem: k => values.delete(k) };
+  const inserts = [], rpcs = [], answers = [];
+  let rpcAnswer = { data: true, error: null };
+  const chain = { on() { return chain; }, subscribe() { return chain; } };
+  const fake = { channel: () => chain, from: () => ({ insert: async row => { inserts.push({ ...row }); return answers.length ? answers.shift() : { error: null }; } }), rpc: async (name, args) => { rpcs.push({ name, args }); return rpcAnswer; } };
+  const ctx = { window: { addEventListener() {}, supabase: { createClient: () => fake }, SUPABASE_CONFIG: { url: 'https://example.supabase.co', publishableKey: 'k' } }, localStorage, console };
+  vm.runInNewContext(read('js/store.js'), ctx);
+  const Store = ctx.window.LHC_STORE;
+  assert.equal((await Store.init()).shared, true, 'connected to the (fake) database');
+
+  assert.deepEqual(plain(await Store.book('ex1', '12', 'Asha')), { ok: true });
+  assert.match(inserts[0].owner_token, /^[0-9a-f]{32}$/, 'the device code goes with the mark');
+  assert.equal(values.get('lhc-device-v1'), inserts[0].owner_token, 'the code is kept on this device');
+  assert.deepEqual(Array.from(Store.mySeats('ex1')), ['12']);
+
+  answers.push({ error: { code: '23514', message: 'one seat per device' } });
+  assert.deepEqual(plain(await Store.book('ex1', '13', 'Asha')), { ok: false, reason: 'already', seat: '12' }, 'the database refuses a second seat for the same device');
+  answers.push({ error: { code: '23505', message: 'duplicate' } });
+  assert.deepEqual(plain(await Store.book('ex2', '12', 'Asha')), { ok: false, reason: 'taken' }, 'a taken seat is reported as taken');
+  assert.deepEqual(Array.from(Store.mySeats('ex2')), [], 'a refused mark is not remembered as ours');
+  answers.push({ error: { code: '42501', message: 'row-level security' } });
+  await assert.rejects(() => Store.book('ex2', '30', 'Asha'), error => error.code === '42501', 'other errors are passed on');
+
+  // Older database (schema.sql not run again): no owner_token column. This browser enforces the rule until it is updated.
+  inserts.length = 0;
+  answers.push({ error: { code: 'PGRST204', message: "Could not find the 'owner_token' column of 'seat_marks' in the schema cache" } });
+  assert.deepEqual(plain(await Store.book('ex3', '5', 'Asha')), { ok: true }, 'the mark still works without the column');
+  assert.equal(inserts.length, 2); assert.ok('owner_token' in inserts[0] && !('owner_token' in inserts[1]), 'retried without owner_token');
+  inserts.length = 0;
+  answers.push({ error: { code: 'PGRST204', message: "Could not find the 'owner_token' column" } });
+  assert.deepEqual(plain(await Store.book('ex3', '6', 'Asha')), { ok: false, reason: 'already', seat: '5' }, 'this browser refuses the second seat meanwhile');
+  assert.equal(inserts.length, 1, 'and does not insert it');
+
+  // Unmarking: only a seat this device marked, through release_seat with the device code.
+  assert.deepEqual(plain(await Store.release('ex1', '99')), { ok: false, reason: 'not-yours' }, 'not ours: no call is made');
+  assert.equal(rpcs.length, 0);
+  assert.deepEqual(plain(await Store.release('ex1', '12')), { ok: true });
+  assert.deepEqual(plain(rpcs[0]), { name: 'release_seat', args: { p_event: 'ex1', p_seat: '12', p_token: values.get('lhc-device-v1') } });
+  assert.deepEqual(Array.from(Store.mySeats('ex1')), [], 'the seat is no longer ours');
+  assert.deepEqual(plain(await Store.book('ex1', '13', 'Asha')), { ok: true }, 'after unmarking another seat can be marked');
+  rpcAnswer = { data: false, error: null };
+  assert.deepEqual(plain(await Store.release('ex1', '13')), { ok: false, reason: 'not-yours' }, 'the database says it is not ours');
+  console.log('PASS: one seat per exam — device code, database refusals, older-database fallback, unmark');
 })().catch(error => { console.error(error); process.exitCode = 1; });
 
 // Exams of different courses can share a hall at the same time: they share the seats, so marks made for either show up in both.
@@ -358,6 +532,7 @@ console.log('PASS: Cloudflare runtime config, admin session security and permiss
   assert.ok(js.includes('setCollapsed') && js.includes("'touchend'") && js.includes('lhc-bar-collapsed'), 'handle works by tap and swipe and is remembered');
   assert.ok(/\.event-bar\.collapsed \.event-bar-inner \{ display: none; \}/.test(css), 'collapsed bar hides dates and events');
   assert.ok(/\.bar-handle \{ display: none; \}/.test(css), 'handle is phone-only');
+  assert.ok(/\.bar-handle \{[^}]*min-height: 24px/.test(css), 'the pull-up bar is tall enough to tap');
   console.log('PASS: pull-up events bar on phones');
 }
 

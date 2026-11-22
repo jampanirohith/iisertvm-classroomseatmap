@@ -10,11 +10,32 @@ const { install } = require('./fake-supabase.js');
 
 const root = path.join(__dirname, '..');
 const port = Number(process.argv[2]) || 8788;
-const { tables, env } = install();
+const { tables, changes, env } = install();
 env.ADMIN_PASSWORD = 'admin';
 // The browser normally talks to Supabase directly; in this preview a tiny stand-in for supabase-js does the same against the in-memory data.
 const shim = `window.supabase = { createClient() { return {
-  channel() { const c = { on() { return c; }, subscribe() { return c; } }; return c; },
+  // Live updates: the page asks the preview server for changes made since it connected (about twice a second).
+  channel() {
+    const handlers = [];
+    const c = { on(kind, cfg, cb) { handlers.push({ cfg, cb }); return c; }, subscribe() {
+      let after = 0, first = true;
+      const tick = async () => {
+        try {
+          const d = await (await fetch('/__dev/changes?after=' + after)).json();
+          if (first) { after = d.last; first = false; }
+          else d.changes.forEach(ch => { after = ch.id; handlers.forEach(h => { if (h.cfg.table === ch.table) h.cb({ eventType: ch.eventType, new: ch.new || {}, old: ch.old || {} }); }); });
+        } catch { /* preview server stopped */ }
+        setTimeout(tick, 400);
+      };
+      tick(); return c;
+    } };
+    return c;
+  },
+  async rpc(name, args) {
+    const r = await fetch('/__dev/rest/rpc/' + name, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(args || {}) });
+    const data = await r.json().catch(() => null);
+    return r.ok ? { data, error: null } : { data: null, error: data || { message: 'error' } };
+  },
   from(table) {
     const filters = [], orders = []; let op = 'select', payload;
     const q = { select() { return q; }, eq(c, v) { filters.push([c, 'eq.' + v]); return q; }, in(c, vs) { filters.push([c, 'in.(' + vs.join(',') + ')']); return q; }, order(c) { orders.push(c); return q; }, insert(row) { op = 'insert'; payload = row; return q; }, then(res, rej) { return run().then(res, rej); } };
@@ -53,6 +74,12 @@ http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://localhost:${port}`);
   try {
     if (url.pathname === '/__dev/supabase-shim.js') { res.writeHead(200, { 'Content-Type': 'text/javascript' }); res.end(shim); return; }
+    if (url.pathname === '/__dev/changes') {
+      const after = Number(url.searchParams.get('after')) || 0;
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+      res.end(JSON.stringify({ last: changes.length, changes: changes.filter(c => c.id > after) }));
+      return;
+    }
     if (url.pathname.startsWith('/__dev/rest/')) {
       const chunks = []; for await (const c of req) chunks.push(c);
       const response = await fetch(`https://fake-project.supabase.co/rest/v1/${url.pathname.slice('/__dev/rest/'.length)}${url.search}`, { method: req.method, headers: { Prefer: 'return=representation' }, body: chunks.length ? Buffer.concat(chunks).toString() : undefined });

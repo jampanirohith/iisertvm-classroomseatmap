@@ -12,7 +12,8 @@ Open a classroom to see its seating arrangement, browse its events by date, book
 | `icons/icon-*.png` | Logo: diamond classroom with seats; used as tab, install and home-screen icon (`icon.svg` is the source) |
 | `js/room.js` | Classroom page (phones: pull-up dates and events bar; no event is selected until tapped) |
 | `js/cheer.js`, `icons/cheer-cat.png` | "All the best" popup (dancing kitten) for a bookmarked exam from 15 minutes before it starts |
-| `interactive-map.html` | Interactive map of the Lecture Hall Complex (map in the printed floor plan colours) |
+| `js/notify.js` | Exam reminders: a notification 15 minutes before an exam in which the student marked a seat |
+| `interactive-map.html`, `js/map.js` | Interactive map of the Lecture Hall Complex, drawn like the printed floor plan (two views: Floor plan, and Jupiter & Venus) |
 | `admin.html` | Weekly schedule for each classroom: add, edit, reschedule, delete; settings and co-admins (admin only) |
 
 ## For students
@@ -23,6 +24,8 @@ Open a classroom to see its seating arrangement, browse its events by date, book
 - **Home search.** Search classes and exams by course code (with or without a space), hall, teacher or date ("25 Nov", today, tomorrow), with All/Classes/Exams filters. Without a search the home page shows the classrooms (with today's count) and My events.
 - **Seat map.** On computers the whole classroom is in view when the page opens. On phones it opens at a readable size and centred; the fit button switches between the whole room and the readable size. Pulling the events bar up also shows the whole room. Pinch (or Ctrl + scroll) to zoom and drag to move around.
 - **Exams only:** tap a free seat to mark it with your name; tap a marked seat to see who marked it. Classes and other events are view-only.
+- **One seat per exam.** A student can mark one seat for each exam. Tapping another seat shows the seat you already marked; **Unmark seat** frees it so you can choose again. The rule is tied to the device, not to the name, and the database enforces it once `supabase/schema.sql` has been run again.
+- **Exam reminder.** When you mark a seat, **Notify me 15 minutes before the exam** is ticked by default. Marking the seat (or ticking the box) makes the browser show its own "Allow notifications?" question; there is no popup of ours. After you allow it, a notification "Exam starts in 15 minutes" with the course, hall, seat and time appears 15 minutes before the exam, and tapping it opens that exam. You can switch the reminder on or off later from your own seat's box, and unmarking the seat cancels it. Reminders are kept on that device and are shown while the site is open in the browser (a tab, even in the background, or the installed app); nothing is sent from a server, so a closed browser shows nothing. If the site is opened inside the last 15 minutes the reminder shows at once; after the exam has started it is dropped. If notifications are blocked, the box says so: allow them from the icon next to the address in Chrome. An iPhone or iPad shows no reminder box in a plain Safari tab (add the site to the Home Screen to use notifications there).
 - **Look.** Plain and flat: solid colours, thin borders, the device's own font. It follows the device's light or dark setting; there is no theme button.
 
 ## For the admin
@@ -67,7 +70,7 @@ The **+ Event** button on a classroom page appears only for people who may add e
 
 ## Setup (Cloudflare Pages + Supabase)
 
-1. Create a Supabase project. In the SQL editor run `supabase/schema.sql`, then `supabase/seed.sql`. If you already have a database, run `schema.sql` again: it only adds what is missing (the `created_by` column, `app_settings`, `coadmins`, the exam-only seat guard and the room rules: no overlap for classes, exams of different courses may share a hall).
+1. Create a Supabase project. In the SQL editor run `supabase/schema.sql`, then `supabase/seed.sql`. If you already have a database, run `schema.sql` again: it only adds what is missing (the `created_by` column, `app_settings`, `coadmins`, the exam-only seat guard, the one-seat-per-student rule with its `release_seat` function, and the room rules: no overlap for classes, exams of different courses may share a hall). Until it has been run again the site still works, and each browser enforces the one-seat rule on its own.
 2. In Cloudflare Pages, add these for Production:
 
 | Name | Type | Value |
@@ -92,6 +95,8 @@ The admin page now says what is actually wrong. The usual causes:
 | A database table is missing | Run `supabase/schema.sql`, then `supabase/seed.sql`. |
 | Supabase rejected the key / denied access | In Cloudflare Pages > Settings > Variables and Secrets, check `SUPABASE_URL` (the project URL) and `SUPABASE_SECRET_KEY` (the `sb_secret_...` key, not the publishable one). Redeploy after changing them. |
 | Supabase is not configured | Add `SUPABASE_URL` and `SUPABASE_SECRET_KEY` for **Production** (and Preview if you test there), then redeploy. |
+
+Exam reminder not shown: the site must be open in the browser at that time, notifications must be allowed for the site (Chrome: the icon next to the address, then Notifications > Allow), and the seat must still be marked on that device. Chrome sometimes shows the permission question as a small crossed bell in the address bar instead of a popup (for example when quieter notification prompts are on in Chrome's settings); tap the bell and choose Allow.
 
 Full details are written to the Cloudflare logs: Workers & Pages > your project > the deployment > Functions > Real-time logs.
 
@@ -139,7 +144,7 @@ layout: {
 ## Tests
 
 ```
-node tests/smoke-test.js    # layouts, pages, theme, bookmarks, page structure
+node tests/smoke-test.js    # layouts, pages, theme, bookmarks, interactive map, one seat per exam, exam reminder, page structure
 node tests/api-test.js      # sign-in, roles, who-can-add modes, edit/reschedule, delete rules, co-admins
 node tests/error-hint-test.js   # Supabase failures give specific, safe hints
 ```

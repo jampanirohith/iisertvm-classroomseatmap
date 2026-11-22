@@ -195,6 +195,7 @@
       // Refresh the saved copies from the latest events (times may have changed, or an event may have been deleted).
       const saved = new Set(Store.bookmarks.list().map(b => b.roomId));
       rooms.forEach((room, i) => { if (saved.has(room.id)) { try { Store.bookmarks.sync(room.id, lists[i]); } catch (error) { console.error(error); } } });
+      if (window.LHC_NOTIFY) rooms.forEach((room, i) => { try { LHC_NOTIFY.sync(room.id, lists[i]); } catch (error) { console.error(error); } });
       renderMyEvents();
     } catch (error) { console.error(error); if (!loaded) failed = true; }
     loading = false;

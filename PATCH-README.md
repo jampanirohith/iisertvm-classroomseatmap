@@ -1,4 +1,4 @@
-# Patch: plain redesign, admin fixes, schedule SQL
+# Patch: exam reminders, one seat per exam, new interactive map, fixes
 
 Copy these files over your repo (same paths), then commit and push.
 
@@ -9,11 +9,15 @@ Delete these old files from the repo if they are still there:
 
 Supabase SQL (run in the SQL editor, only when you want them):
 - supabase/exams.sql: run this first. It replaces the mid-sem and end-sem exam events (19-26 Sep and 18 Nov - 1 Dec) with 218 events, one per course per hall. Codes joined by "/" in a seating plan are one course ("DSC 323 / MAT 314 / MSM 405"); different courses that share a hall are separate events ("HUM 212" and "I2M 411 / MAT 4511"). It also installs the room rules that let exams share a hall. Classes and other events are not touched; safe to run again.
-- supabase/schema.sql: run once more (safe to re-run). It adds the room rules, the rule that a seat can be marked once across exams in the same hall, and the refusal of seat marks while the admin has marking turned off.
+- supabase/schema.sql: run once more (safe to re-run). It adds the room rules, the rule that a seat can be marked once across exams in the same hall, the refusal of seat marks while the admin has marking turned off, and the new rule that one student (device) can mark only one seat per exam, with the function that lets a student unmark their own seat. Until it has been run the site still works and each browser applies the one-seat rule itself.
 - supabase/schedule.sql: only if you want to reset the class timetable (27 Jul to 17 Nov). It no longer deletes everything: it replaces only class events, keeps the ones that are already right and never touches exams.
 - supabase/courses.md and supabase/timetable-command.md: the course reference and the prompt for an AI that turns a timetable PDF into SQL (they are not served on the website).
 
 What changed
+- Exam reminder: when a student marks a seat, "Notify me 15 minutes before the exam" is ticked by default. The browser shows its own "Allow notifications?" question (no popup of ours). 15 minutes before the exam a notification shows the course, hall, seat and time; tapping it opens the exam. The tick can be switched off and on from the student's own seat box; unmarking cancels the reminder. Nothing is announced when a seat is marked. Reminders are shown while the site is open in the browser or installed app (a closed browser shows nothing).
+- One seat per student per exam: tapping another seat shows the seat already marked, with an Unmark seat button to choose again. The database enforces it per device (needs schema.sql).
+- Interactive map redrawn from your photo: exact left/right mirror, the printed lettering and colours, two views (Floor plan, and Jupiter & Venus with the two pairs as clickable halls), full width on phones, hover and keyboard focus.
+- Sweep of every page in light and dark at five screen sizes: no console errors or sideways scrolling; fixed the double heading on the home page, a larger tap area for the phone pull-up bar, and the not-found classroom page.
 - Classroom page: no event is selected on opening a classroom or changing the day; an event is selected only when tapped (links to a specific event still select it).
 - Two exams of different courses can share a hall at the same time: the admin accepts it, the week view shows them side by side, and they share one seat map (a seat marked for one is taken for the other; tapping it says who marked it and for which course).
 - Plain, flat look; plain seat map; no header bar (links to Interactive map and Admin sit in a plain-text footer).

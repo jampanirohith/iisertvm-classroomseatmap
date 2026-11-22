@@ -1,8 +1,8 @@
 // Lets the site install as an app and open its pages without a connection.
 // Pages and scripts always come from the network first, so updates show straight away; the saved copy is only a fallback.
 // Live data (/api and the database) is never saved here.
-const CACHE = 'lhc-shell-v3';
-const SHELL = ['index.html', 'room.html', 'interactive-map.html', 'css/styles.css', 'js/format.js', 'js/data.js', 'js/store.js', 'js/home.js', 'js/room.js', 'js/map.js', 'js/cheer.js', 'js/pwa.js', 'supabase/config.js', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/cheer-cat.png'];
+const CACHE = 'lhc-shell-v5';
+const SHELL = ['index.html', 'room.html', 'interactive-map.html', 'css/styles.css', 'js/format.js', 'js/data.js', 'js/store.js', 'js/notify.js', 'js/home.js', 'js/room.js', 'js/map.js', 'js/cheer.js', 'js/pwa.js', 'supabase/config.js', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/cheer-cat.png'];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => Promise.all(SHELL.map(url => cache.add(url).catch(() => {})))).then(() => self.skipWaiting()));
@@ -20,4 +20,14 @@ self.addEventListener('fetch', event => {
       return response;
     }).catch(() => caches.match(request, { ignoreSearch: true }).then(hit => hit || (request.mode === 'navigate' ? caches.match('index.html') : Response.error())))
   );
+});
+
+// Tapping an exam reminder opens that exam's classroom page (or brings its tab to the front).
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const target = new URL((event.notification.data && event.notification.data.url) || 'index.html', self.registration.scope).href;
+  event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windows => {
+    const open = windows.find(w => w.url === target);
+    return open ? open.focus() : self.clients.openWindow(target);
+  }));
 });

@@ -16,39 +16,121 @@
   <main class="shell">
     <h1>Interactive map</h1>
     <p class="lede">Select a classroom to see its seating arrangement.</p>
+    <div class="map-tabs" role="group" aria-label="Map view" hidden>
+      <button type="button" class="map-tab" data-view="plan" aria-pressed="true">Floor plan</button>
+      <button type="button" class="map-tab" data-view="jv" aria-pressed="false">Jupiter &amp; Venus</button>
+    </div>
     <section class="map-card" aria-label="Lecture Hall Complex floor plan">
-<svg class="lhc-map-svg" viewBox="0 0 1200 830" role="img" aria-labelledby="map-title">
+<svg class="lhc-map-svg" viewBox="58 122 1210 688" role="group" aria-labelledby="map-title">
 <title id="map-title">Lecture Hall Complex floor plan</title>
-<rect class="fp-bg" x="10" y="10" width="1180" height="810" rx="8"/>
-<polygon class="fp-floor" points="560,120 640,120 640,280 1020,660 900,790 300,790 180,660 560,280"/>
-<rect class="fp-lobby" x="505" y="28" width="190" height="104" rx="8"/>
-<text class="fp-label" x="600" y="215" text-anchor="middle">Lobby</text>
-<text class="fp-sign" x="448" y="86" text-anchor="middle">EXIT</text>
-<text class="fp-sign" x="752" y="86" text-anchor="middle">EXIT</text>
-<a class="room-hit" href="room.html?room=lhc-bhaskara" aria-label="Open Bhaskara seating arrangement"><title>Bhaskara</title><polygon class="room-shape tone-b" points="200,340 380,520 200,700 20,520"/><text class="fp-name" x="200" y="518" text-anchor="middle">Bhaskara</text><text class="fp-cap" x="200" y="554" text-anchor="middle" data-room-cap="lhc-bhaskara">{} seater</text></a>
-<a class="room-hit" href="room.html?room=lhc-kaumudi" aria-label="Open Kaumudi seating arrangement"><title>Kaumudi</title><polygon class="room-shape tone-b" points="1180,520 1000,700 820,520 1000,340"/><text class="fp-name" x="1000" y="518" text-anchor="middle">Kaumudi</text><text class="fp-cap" x="1000" y="554" text-anchor="middle" data-room-cap="lhc-kaumudi">{} seater</text></a>
-<a class="room-hit" href="room.html?room=lhc-jupiter" aria-label="Open Jupiter seating arrangement"><title>Jupiter</title><polygon class="room-shape tone-a" points="345,140 510,305 345,470 180,305"/><text class="fp-name" x="345" y="303" text-anchor="middle">Jupiter</text><text class="fp-cap" x="345" y="339" text-anchor="middle" data-room-cap="lhc-jupiter">{} seater</text></a>
-<a class="room-hit" href="room.html?room=lhc-venus" aria-label="Open Venus seating arrangement"><title>Venus</title><polygon class="room-shape tone-a" points="1020,305 855,470 690,305 855,140"/><text class="fp-name" x="855" y="303" text-anchor="middle">Venus</text><text class="fp-cap" x="855" y="339" text-anchor="middle" data-room-cap="lhc-venus">{} seater</text></a>
-<a class="room-hit" href="room.html?room=lhc-aryabhatta" aria-label="Open Aryabhatta seating arrangement"><title>Aryabhatta</title><polygon class="room-shape tone-c" points="560,455 640,455 870,685 760,790 440,790 330,685"/><text class="fp-name" x="600" y="648" text-anchor="middle">Aryabhatta</text><text class="fp-cap" x="600" y="684" text-anchor="middle" data-room-cap="lhc-aryabhatta">{} seater</text></a>
-<polygon class="fp-lift" points="548,317 576,345 548,373 520,345"/>
-<text class="fp-lift-text" x="548" y="350" text-anchor="middle">LIFT</text>
-<polygon class="fp-lift" points="652,317 680,345 652,373 624,345"/>
-<text class="fp-lift-text" x="652" y="350" text-anchor="middle">LIFT</text>
-<polygon class="fp-service" points="560,388 640,388 628,438 572,438"/>
-<text class="fp-sign" x="600" y="419" text-anchor="middle">STAIRS</text>
-<polygon class="fp-wash" points="225,800 225,750 290,712 355,750 355,800"/>
-<polygon class="fp-wash" points="845,800 845,750 910,712 975,750 975,800"/>
-<text class="fp-label" x="290" y="786" text-anchor="middle">WASH</text>
-<text class="fp-label" x="910" y="786" text-anchor="middle">WASH</text>
-<rect class="fp-service" x="30" y="745" width="165" height="55" rx="6"/>
-<rect class="fp-service" x="1005" y="745" width="165" height="55" rx="6"/>
-<text class="fp-sign" x="112" y="780" text-anchor="middle">STAIRS</text>
-<text class="fp-sign" x="1088" y="780" text-anchor="middle">STAIRS</text>
+<!-- Floor areas -->
+<polygon class="fp-fill fp-lobby-fill" id="lobby-fill" points="601,653 679,653 679,722 707,722 707,787 573,787 573,722 601,722"/>
+<polygon class="fp-fill fp-wash-fill" id="wash-l" points="285,182 392,182 433,223 376,280 348,252 314,286 285,257"/>
+<polygon class="fp-fill fp-wash-fill" id="wash-r" points="846,222 893,175 1026,175 1026,227 969,284 927,242 897,272"/>
+<!-- The four 50-seater rooms -->
+<g id="view-plan">
+  <g class="room-static" data-room="G N Ramachandran">
+    <polygon class="room-fill tone-blue" id="room-gn" points="422,474 482,534 362,654 302,594"/>
+    <path class="wall" d="M422 474 L427.7 479.7 L419.2 488.1 A12 12 0 0 0 436.1 488.1 L468 520 A12 12 0 0 0 468 536.9 L476.4 528.4 L482 534 L362 654 L302 594 L422 474Z"/>
+    <g transform="translate(392 564) rotate(-45)"><text class="fp-pname long" x="0" y="-3" text-anchor="middle">G N Ramachandran</text><text class="fp-pcap" x="0" y="19" text-anchor="middle">50 seater</text></g>
+  </g>
+  <g class="room-static" data-room="P C Ray">
+    <polygon class="room-fill tone-blue" id="room-pc" points="482,534 542,594 422,714 362,654"/>
+    <path class="wall" d="M482 534 L487.7 539.7 L479.2 548.1 A12 12 0 0 0 496.1 548.1 L528 580 A12 12 0 0 0 528 596.9 L536.4 588.4 L542 594 L422 714 L362 654 L482 534Z"/>
+    <g transform="translate(452 624) rotate(-45)"><text class="fp-pname" x="0" y="-3" text-anchor="middle">P C Ray</text><text class="fp-pcap" x="0" y="19" text-anchor="middle">50 seater</text></g>
+  </g>
+  <g class="room-static" data-room="C V Raman">
+    <polygon class="room-fill tone-blue" id="room-cv" points="858,474 798,534 918,654 978,594"/>
+    <path class="wall" d="M858 474 L852.3 479.7 L860.8 488.1 A12 12 0 0 1 843.9 488.1 L812 520 A12 12 0 0 1 812 536.9 L803.6 528.4 L798 534 L918 654 L978 594 L858 474Z"/>
+    <g transform="translate(888 564) rotate(45)"><text class="fp-pname" x="0" y="-3" text-anchor="middle">C V Raman</text><text class="fp-pcap" x="0" y="19" text-anchor="middle">50 seater</text></g>
+  </g>
+  <g class="room-static" data-room="S Ramanujan">
+    <polygon class="room-fill tone-blue" id="room-sr" points="798,534 738,594 858,714 918,654"/>
+    <path class="wall" d="M798 534 L792.3 539.7 L800.8 548.1 A12 12 0 0 1 783.9 548.1 L752 580 A12 12 0 0 1 752 596.9 L743.6 588.4 L738 594 L858 714 L918 654 L798 534Z"/>
+    <g transform="translate(828 624) rotate(45)"><text class="fp-pname" x="0" y="-3" text-anchor="middle">S Ramanujan</text><text class="fp-pcap" x="0" y="19" text-anchor="middle">50 seater</text></g>
+  </g>
+</g>
+<!-- Second view: Jupiter and Venus take the place of the four rooms -->
+<g id="view-jv" hidden>
+  <a class="room-hit" href="room.html?room=lhc-venus" aria-label="Open Venus seating arrangement">
+    <title>Venus</title>
+    <polygon class="room-fill tone-blue" id="hall-venus" points="422,474 542,594 422,714 302,594"/>
+    <path class="wall room-line" d="M422 474 L427.7 479.7 L419.2 488.1 A12 12 0 0 0 436.1 488.1 L468 520 A12 12 0 0 0 468 536.9 L476.4 528.4 L487.8 539.8 L479.3 548.2 A12 12 0 0 0 496.2 548.2 L528.1 580.1 A12 12 0 0 0 528.1 597 L536.6 588.6 L542 594 L422 714 L302 594 L422 474Z"/>
+    <text class="fp-name" x="422" y="592" text-anchor="middle">Venus</text>
+    <text class="fp-cap" x="422" y="618" text-anchor="middle" data-room-cap="lhc-venus">112 seater</text>
+  </a>
+  <a class="room-hit" href="room.html?room=lhc-jupiter" aria-label="Open Jupiter seating arrangement">
+    <title>Jupiter</title>
+    <polygon class="room-fill tone-blue" id="hall-jupiter" points="858,474 738,594 858,714 978,594"/>
+    <path class="wall room-line" d="M858 474 L852.3 479.7 L860.8 488.1 A12 12 0 0 1 843.9 488.1 L812 520 A12 12 0 0 1 812 536.9 L803.6 528.4 L792.2 539.8 L800.7 548.2 A12 12 0 0 1 783.8 548.2 L751.9 580.1 A12 12 0 0 1 751.9 597 L743.4 588.6 L738 594 L858 714 L978 594 L858 474Z"/>
+    <text class="fp-name" x="858" y="592" text-anchor="middle">Jupiter</text>
+    <text class="fp-cap" x="858" y="618" text-anchor="middle" data-room-cap="lhc-jupiter">112 seater</text>
+  </a>
+</g>
+<!-- Corridor walls -->
+<path class="wall" d="M127 302 L250 302 L274 326"/>
+<path class="wall" d="M542 594 L601 653 L601 722 L551 722"/>
+<path class="wall" d="M738 594 L679 653 L679 722 L729 722"/>
+<path class="wall" d="M1026 162 L1182 162 L1182 257 L1139 300"/>
+<!-- Washrooms -->
+<path class="wall" d="M285,182 L392,182 L433,223 L376,280 L348,252 L314,286 L285,257 Z"/>
+<path class="wall" d="M846,222 L893,175 L1026,175 L1026,227 L969,284 L927,242 L897,272 Z"/>
+<text class="fp-serif fp-wash" x="359" y="221" text-anchor="middle">WASH</text>
+<text class="fp-serif fp-wash" x="933" y="217" text-anchor="middle">WASH</text>
+<!-- Stairs blocks at the top corners -->
+<path class="wall" d="M285 182 L285 172 L127 172 L127 232 M123 232 L223 232"/>
+<path class="thin" d="M145 173 L145 195 M151.4 173 L151.4 195 M157.9 173 L157.9 195 M164.3 173 L164.3 195 M170.7 173 L170.7 195 M177.1 173 L177.1 195 M183.6 173 L183.6 195 M190 173 L190 195 M145 195 L190 195 M146 208 L146 231 M152.4 208 L152.4 231 M158.9 208 L158.9 231 M165.3 208 L165.3 231 M171.7 208 L171.7 231 M178.1 208 L178.1 231 M184.6 208 L184.6 231 M191 208 L191 231 M146 208 L191 208 M124 232 L124 302 M128 232 L128 302 M132 232 L132 302 M136 232 L136 302 M140 232 L140 302 M144 232 L144 302"/>
+<text class="fp-sign" x="222" y="205" text-anchor="middle">STAIRS</text>
+<text class="fp-sign" x="114" y="274" text-anchor="middle">EXIT</text>
+<path class="wall" d="M1026 175 L1026 162 M1087 224 L1182 224"/>
+<path class="thin" d="M1120 163 L1120 185 M1126.6 163 L1126.6 185 M1133.1 163 L1133.1 185 M1139.7 163 L1139.7 185 M1146.3 163 L1146.3 185 M1152.9 163 L1152.9 185 M1159.4 163 L1159.4 185 M1166 163 L1166 185 M1120 185 L1166 185 M1119 200 L1119 223 M1125.6 200 L1125.6 223 M1132.1 200 L1132.1 223 M1138.7 200 L1138.7 223 M1145.3 200 L1145.3 223 M1151.9 200 L1151.9 223 M1158.4 200 L1158.4 223 M1165 200 L1165 223 M1119 200 L1165 200"/>
+<text class="fp-sign" x="1084" y="199" text-anchor="middle">STAIRS</text>
+<!-- Stairs under Aryabhatta -->
+<path class="wall" d="M599 503 L567 535 M593 561 L615 539 L665 539 L687 561 M681 503 L713 535"/>
+<path class="thin" d="M567 535 L593 561 M571.5 530.5 L597.5 556.5 M576.1 525.9 L602.1 551.9 M580.6 521.4 L606.6 547.4 M585.1 516.9 L611.1 542.9 M589.6 512.4 L615.6 538.4 M713 535 L687 561 M708.5 530.5 L682.5 556.5 M703.9 525.9 L677.9 551.9 M699.4 521.4 L673.4 547.4 M694.9 516.9 L668.9 542.9 M690.4 512.4 L664.4 538.4 M615 505 L615 538 M621.3 505 L621.3 538 M627.5 505 L627.5 538 M633.8 505 L633.8 538 M640 505 L640 538 M646.3 505 L646.3 538 M652.5 505 L652.5 538 M658.8 505 L658.8 538 M665 505 L665 538"/>
+<text class="fp-sign" x="641" y="553" text-anchor="middle">STAIRS</text>
+<!-- Lobby and exits -->
+<path class="wall" d="M545 787 L735 787"/>
+<path class="thin" d="M519 722 L573 722 L573 787 L519 787 Z M524.5 723 L524.5 786 M530 723 L530 786 M536 723 L536 786 M542 723 L542 786 M548 723 L548 786 M554 723 L554 786 M560 723 L560 786 M566 723 L566 786 M707 722 L761 722 L761 787 L707 787 Z M714 723 L714 786 M720 723 L720 786 M726 723 L726 786 M732 723 L732 786 M738 723 L738 786 M744 723 L744 786 M750 723 L750 786 M756 723 L756 786"/>
+<text class="fp-sign" x="541" y="758" text-anchor="middle">EXIT</text>
+<text class="fp-sign" x="739" y="758" text-anchor="middle">EXIT</text>
+<text class="fp-serif fp-lobby" x="641" y="720" text-anchor="middle">Lobby</text>
+<!-- Lifts -->
+<polygon class="fp-lift" id="lift-l" points="553,605 580,632 553,659 526,632"/>
+<polygon class="fp-lift" id="lift-r" points="727,605 700,632 727,659 754,632"/>
+<rect class="fp-lift" x="214" y="302" width="36" height="31"/>
+<text class="fp-lift-text" x="553" y="636.5" text-anchor="middle">LIFT</text>
+<text class="fp-lift-text" x="727" y="636.5" text-anchor="middle">LIFT</text>
+<text class="fp-lift-text" x="232" y="322" text-anchor="middle">LIFT</text>
+<!-- Aryabhatta, Kaumudi and Bhaskara -->
+<a class="room-hit" href="room.html?room=lhc-aryabhatta" aria-label="Open Aryabhatta seating arrangement">
+  <title>Aryabhatta</title>
+  <polygon class="room-fill tone-mauve" id="hall-aryabhatta" points="513,143 767,143 904,280 681,503 599,503 376,280"/>
+  <path class="wall room-line" d="M513 143 L767 143 L904 280 L779.5 404.5 L766.8 391.7 A18 18 0 0 0 766.8 417.2 A18 18 0 0 0 741.4 417.2 L754.1 429.9 L681 503 L599 503 L525.9 429.9 L538.6 417.2 A18 18 0 0 0 513.2 417.2 A18 18 0 0 0 513.2 391.7 L500.5 404.5 L417 321 L429.7 308.3 A18 18 0 0 0 404.3 308.3 A18 18 0 0 0 404.3 282.8 L391.6 295.6 L376 280 L513 143Z"/>
+  <text class="fp-name" x="640" y="282" text-anchor="middle">Aryabhatta</text>
+  <text class="fp-cap" x="640" y="308" text-anchor="middle">500 seater</text>
+</a>
+<a class="room-hit" href="room.html?room=lhc-kaumudi" aria-label="Open Kaumudi seating arrangement">
+  <title>Kaumudi</title>
+  <polygon class="room-fill tone-tan" id="hall-kaumudi" points="274,326 422,474 226,670 78,522"/>
+  <path class="wall room-line" d="M274 326 L390.5 442.5 L377.8 455.3 A18 18 0 0 0 403.3 455.3 A18 18 0 0 0 403.3 480.7 L416 468 L422 474 L226 670 L78 522 L274 326Z"/>
+  <text class="fp-name" x="252" y="490" text-anchor="middle">Kaumudi</text>
+  <text class="fp-cap" x="252" y="516" text-anchor="middle">200 seater</text>
+</a>
+<a class="room-hit" href="room.html?room=lhc-bhaskara" aria-label="Open Bhaskara seating arrangement">
+  <title>Bhaskara</title>
+  <polygon class="room-fill tone-tan" id="hall-bhaskara" points="858,474 1086,246 1251,411 1023,639"/>
+  <path class="wall room-line" d="M858 474 L863.3 468.7 L876 481.4 A18 18 0 0 0 876 456 A18 18 0 0 0 901.5 456 L888.8 443.2 L1086 246 L1251 411 L1023 639 L858 474Z"/>
+  <text class="fp-name" x="1046" y="433" text-anchor="middle">Bhaskara</text>
+  <text class="fp-cap" x="1046" y="459" text-anchor="middle">250 seater</text>
+</a>
 </svg>
     </section>
   </main>
   <footer class="site-foot"><nav aria-label="More pages"><a href="index.html">Classrooms</a> <span aria-hidden="true">·</span> <a href="admin.html">Admin</a></nav></footer>
+  <script src="js/format.js"></script>
   <script src="js/data.js"></script>
+  <script src="js/notify.js"></script>
   <script src="js/map.js"></script>
   <script src="js/pwa.js"></script>
 </body>

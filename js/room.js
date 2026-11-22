@@ -6,17 +6,19 @@
   const NAME_KEY = 'lhc-name';
 
   const Store = window.LHC_STORE;
+  const Notify = window.LHC_NOTIFY;   // exam reminders
   const params = new URLSearchParams(location.search);
   const room = (window.LHC_ROOMS || []).find(r => r.id === params.get('room'));
   const root = $('room-body');
   const toastEl = $('toast');
   let toastTimer;
-  const notify = message => { toastEl.textContent = message; toastEl.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove('show'), 3400); };
+  const toast = message => { toastEl.textContent = message; toastEl.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(() => toastEl.classList.remove('show'), 3400); };
 
   if (!room) {
     document.title = 'Classroom not found - IISER TVM';
     $('room-title').textContent = 'Classroom not found';
     $('add-event').hidden = true;
+    document.querySelector('.top-tools').hidden = true;   // no classroom, so no calendar button
     root.innerHTML = '<p class="pending">Choose a classroom from the <a href="index.html">Lecture Hall Complex</a> list.</p>';
     return;
   }
@@ -369,8 +371,8 @@
     if (!ev) return;
     try {
       const now = Store.bookmarks.toggle(ev);
-      notify(now ? 'Added to My events on this device.' : 'Removed from My events.');
-    } catch (error) { console.error(error); notify(error.message || 'Could not save the bookmark.'); }
+      toast(now ? 'Added to My events on this device.' : 'Removed from My events.');
+    } catch (error) { console.error(error); toast(error.message || 'Could not save the bookmark.'); }
     renderStrip(); renderFoot();
   }
 
@@ -387,7 +389,7 @@
   }
   async function loadEvents() {
     state.events = (await Store.listEvents(room.id)).sort((a, b) => when(a).localeCompare(when(b)));
-    try { Store.bookmarks.sync(room.id, state.events); } catch (error) { console.error(error); }
+    try { Store.bookmarks.sync(room.id, state.events); if (Notify) Notify.sync(room.id, state.events); } catch (error) { console.error(error); }
   }
   // Other exams in this hall at the same time (different courses sharing the room).
   const alongside = ev => state.events.filter(o => o.type === 'exam' && o.id !== ev.id && o.date === ev.date && o.start < ev.end && o.end > ev.start).map(o => ({ id: o.id, title: o.title }));
@@ -395,13 +397,14 @@
     const ev = currentEvent();
     if (ev && ev.type === 'exam') state.rules = await Store.seatSettings();
     state.bookings = ev && ev.type === 'exam' ? await Store.listBookings(ev.id, alongside(ev)) : {};
+    if (ev && ev.type === 'exam' && Notify) Notify.follow(ev.id, mySeats());   // no seat any more: no reminder
   }
   async function refreshBookings() { await loadBookings(); renderFoot(); renderHall(); refit(); }
   async function selectEvent(id) {
     state.eventId = id ? String(id) : null;
     const picked = currentEvent();
     if (picked) state.date = picked.date;
-    try { await loadBookings(); } catch (error) { console.error(error); state.bookings = {}; notify('Could not load seat marks for this exam.'); }
+    try { await loadBookings(); } catch (error) { console.error(error); state.bookings = {}; toast('Could not load seat marks for this exam.'); }
     syncUrl();
     renderAll();
   }
@@ -449,48 +452,136 @@
   let seatToMark = null;
   seatDialog.querySelector('[data-close]').addEventListener('click', () => seatDialog.close());
   $('seat-info').querySelector('[data-close]').addEventListener('click', () => $('seat-info').close());
+  // ---------- "Notify me 15 minutes before the exam" ----------
+  // The same checkbox row sits in the mark-a-seat box and in the box for your own seat. It is on by default; ticking it (or
+  // marking the seat with it ticked) makes the browser ask its own "Allow notifications?" question, there is no popup of ours.
+  const remindRow = prefix => ({ row: $(`${prefix}-remind-row`), box: $(`${prefix}-remind`), hint: $(`${prefix}-remind-hint`) });
+  function paintRemind(prefix, ev, wanted) {
+    const { row, box, hint } = remindRow(prefix);
+    const usable = Boolean(Notify && Notify.supported() && Notify.canRemind(ev));
+    row.hidden = !usable;
+    if (!usable) return;
+    const blocked = Notify.permission() === 'denied';
+    box.disabled = blocked;
+    box.checked = !blocked && Boolean(wanted);
+    hint.textContent = blocked ? 'Notifications are blocked for this site. Allow them in your browser\'s site settings to get a reminder.'
+      : !box.checked ? 'No reminder for this exam.'
+      : Notify.permission() === 'granted' ? `You will be notified at ${Notify.dueLabel(ev.start)}, while this site is open.`
+      : 'Your browser will ask to allow notifications. The reminder shows while this site is open.';
+  }
+  // Saves the reminder once the browser allows notifications. Returns what to tell the student.
+  function reminderResult(ev, seat, answer) {
+    if (answer === 'granted') {
+      const saved = Notify.set({ id: ev.id, roomId: room.id, room: room.name, title: ev.title, date: ev.date, start: ev.start, seat });
+      return saved ? `You will be notified at ${Notify.dueLabel(ev.start)}.` : 'The reminder could not be saved on this device.';
+    }
+    return answer === 'denied' ? 'No reminder: notifications are blocked for this site in your browser.' : 'No reminder: notifications were not allowed.';
+  }
+  $('seat-remind').addEventListener('change', () => {
+    const ev = currentEvent(), box = $('seat-remind');
+    if (!ev) return;
+    paintRemind('seat', ev, box.checked);
+    // The browser's own question, started straight from the tick.
+    if (box.checked) Notify.request().then(() => { if (seatDialog.open) paintRemind('seat', ev, $('seat-remind').checked); });
+  });
+  $('info-remind').addEventListener('change', () => {
+    const ev = currentEvent(), seat = infoSeat, box = $('info-remind');
+    if (!ev || ev.type !== 'exam' || !seat) return;
+    if (!box.checked) { Notify.cancel(ev.id); paintRemind('info', ev, false); toast('Reminder turned off for this exam.'); return; }
+    paintRemind('info', ev, true);
+    Notify.request().then(answer => {
+      const message = reminderResult(ev, seat, answer);
+      if ($('seat-info').open) paintRemind('info', ev, Notify.has(ev.id));
+      toast(message);
+    });
+  });
+
+  // The small box for a marked seat: who marked it, and (for your own seat) a button to unmark it.
+  // `why` explains why your own seat is shown when you tapped a different, free one.
+  let infoSeat = null;
+  function showSeatInfo(seat, taken, ev, why) {
+    infoSeat = seat;
+    $('info-no').textContent = seat;
+    const name = shownName(taken);
+    const course = taken.other ? ` <span class="muted">for ${esc(taken.other)}</span>` : '';
+    $('info-line').innerHTML = (taken.mine ? `Marked by <b>${esc(name || 'you')}</b> (you)` : name ? `Marked by <b>${esc(name)}</b>` : 'Marked by another student') + course;
+    $('info-event').textContent = `${ev.title} · ${dateLong(ev.date)} · ${timeLabel(ev.start)} – ${timeLabel(ev.end)}`;
+    $('info-note').textContent = why || '';
+    $('info-note').hidden = !why;
+    $('info-unmark').hidden = !(taken.mine && state.rules.marking === 'on');
+    $('info-unmark').textContent = `Unmark seat ${seat}`;
+    if (taken.mine) paintRemind('info', ev, Notify && Notify.has(ev.id)); else $('info-remind-row').hidden = true;
+    $('seat-info').showModal();
+  }
+  $('info-unmark').addEventListener('click', async () => {
+    const ev = currentEvent(), seat = infoSeat;
+    if (!ev || ev.type !== 'exam' || !seat) { $('seat-info').close(); return; }
+    $('info-unmark').disabled = true;
+    try {
+      const result = await Store.release(ev.id, seat);
+      if (result.ok && Notify) Notify.cancel(ev.id);
+      $('seat-info').close();
+      await refreshBookings();
+      toast(result.ok ? `Seat ${seat} unmarked. You can mark another seat now.` : 'This seat was marked before unmarking was added, so it cannot be unmarked here. Ask the admin to clear it.');
+    } catch (error) {
+      console.error(error);
+      state.rules = await Store.seatSettings();
+      $('seat-info').close();
+      if (state.rules.marking !== 'on') { toast('Seat marking has been turned off.'); renderHall(); renderFoot(); }
+      else toast('Could not unmark your seat. Please try again.');
+    } finally { $('info-unmark').disabled = false; }
+  });
   $('hall').addEventListener('click', e => {
     const btn = e.target.closest('.seat');
     if (!btn) return;
     const ev = currentEvent();
     if (!ev || ev.type !== 'exam') return;   // seats are only markable for exams; for other events the map is view-only
     const taken = state.bookings[btn.dataset.seat];
-    if (taken) {   // a marked seat: show who marked it (names can be limited to the person who marked it)
-      $('info-no').textContent = btn.dataset.seat;
-      const name = shownName(taken);
-      const course = taken.other ? ` <span class="muted">for ${esc(taken.other)}</span>` : '';
-      $('info-line').innerHTML = (taken.mine ? `Marked by <b>${esc(name || 'you')}</b> (you)` : name ? `Marked by <b>${esc(name)}</b>` : 'Marked by another student') + course;
-      $('info-event').textContent = `${ev.title} · ${dateLong(ev.date)} · ${timeLabel(ev.start)} – ${timeLabel(ev.end)}`;
-      $('seat-info').showModal();
-      return;
-    }
-    if (state.rules.marking !== 'on') { notify('Seat marking is turned off for now.'); return; }
+    if (taken) { showSeatInfo(btn.dataset.seat, taken, ev); return; }   // a marked seat: show who marked it (names can be limited to the person who marked it)
+    if (state.rules.marking !== 'on') { toast('Seat marking is turned off for now.'); return; }
+    // One seat per student per exam: show the seat already marked instead of asking for another.
+    const own = mySeats()[0];
+    if (own) { showSeatInfo(own, state.bookings[own], ev, `Each student can mark one seat per exam. To choose seat ${btn.dataset.seat} instead, unmark seat ${own} first.`); return; }
     seatToMark = btn.dataset.seat;
     $('seat-no').textContent = seatToMark;
     $('seat-event').textContent = `${ev.title} · ${dateLong(ev.date)} · ${timeLabel(ev.start)} – ${timeLabel(ev.end)}`;
     let saved = ''; try { saved = localStorage.getItem(NAME_KEY) || ''; } catch { /* ignore */ }
     $('seat-name').value = saved;
+    paintRemind('seat', ev, Notify && Notify.preferred());
     seatDialog.showModal();
     $('seat-name').focus();
   });
   $('seat-form').addEventListener('submit', async e => {
     e.preventDefault();
     const name = $('seat-name').value.trim();
-    if (!name) { notify('Enter your name or initials.'); return; }
-    const ev = currentEvent();
+    if (!name) { toast('Enter your name or initials.'); return; }
+    const ev = currentEvent(), seat = seatToMark;
     if (!ev || ev.type !== 'exam') { seatDialog.close(); return; }
+    // "Notify me": the browser's own question has to start from this tap, so it is asked before the seat is saved.
+    const box = $('seat-remind'), asks = !$('seat-remind-row').hidden && !box.disabled;
+    const asking = asks && box.checked ? Notify.request() : null;
+    if (asks) Notify.setPreferred(box.checked);
     try {
-      const result = await Store.book(state.eventId, seatToMark, name);
+      const result = await Store.book(state.eventId, seat, name);
       seatDialog.close();
-      if (!result.ok) { notify('That seat was just marked by someone else.'); await refreshBookings(); return; }
+      if (!result.ok) {
+        await refreshBookings();
+        if (result.reason === 'already') toast(`You already marked ${result.seat ? 'seat ' + result.seat : 'a seat'} for this exam. Each student can mark one seat.`);
+        else toast('That seat was just marked by someone else.');
+        return;
+      }
       try { localStorage.setItem(NAME_KEY, name); } catch { /* ignore */ }
       await refreshBookings();
-      notify(`Seat ${seatToMark} marked.`);
+      const done = `Seat ${seat} marked.`;
+      if (!asking) { toast(done); return; }
+      // While the browser's question is still open the seat is confirmed first and the reminder follows the answer.
+      if (Notify.permission() === 'default') { toast(done); asking.then(answer => toast(`${done} ${reminderResult(ev, seat, answer)}`)); return; }
+      toast(`${done} ${reminderResult(ev, seat, await asking)}`);
     } catch (error) {
       console.error(error);
       state.rules = await Store.seatSettings();
-      if (state.rules.marking !== 'on') { seatDialog.close(); notify('Seat marking has been turned off.'); renderHall(); renderFoot(); }
-      else notify('Could not mark your seat. Please try again.');
+      if (state.rules.marking !== 'on') { seatDialog.close(); toast('Seat marking has been turned off.'); renderHall(); renderFoot(); }
+      else toast('Could not mark your seat. Please try again.');
     }
   });
 
@@ -521,11 +612,11 @@
   (async function start() {
     showAddButton();
     if (room.layout) wireZoom(); else $('zoom-tools').hidden = true;
-    if (!room.layout) $('map-scroll').outerHTML = `<div class="pending"><h2>${esc(room.name)}</h2><p>The seating map for this classroom isn't available yet.</p></div>`;
+    if (!room.layout) $('map-scroll').outerHTML = `<div class="pending"><p>The seating map for ${esc(room.name)} isn't available yet.</p></div>`;
     try { if (isPhone() && localStorage.getItem(BAR_KEY) === '1') setCollapsed(true, false); } catch { /* ignore */ }
     const status = await Store.init();
-    if (status.error) notify(status.error);
-    try { await loadEvents(); } catch (error) { console.error(error); state.events = []; notify('Could not load events.'); }
+    if (status.error) toast(status.error);
+    try { await loadEvents(); } catch (error) { console.error(error); state.events = []; toast('Could not load events.'); }
     state.eventId = defaultEvent(state.events);
     try { await loadBookings(); } catch (error) { console.error(error); state.bookings = {}; }
     syncUrl();
