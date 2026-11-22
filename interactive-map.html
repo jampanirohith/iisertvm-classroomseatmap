@@ -6,7 +6,7 @@
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#f6f6f4" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
-  <title>Lecture Hall Complex map - IISER TVM</title>
+  <title>Campus map - IISER TVM</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon-192.png" type="image/png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -15,12 +15,29 @@
 <body class="map-page has-foot">
   <main class="shell">
     <h1>Interactive map</h1>
-    <p class="lede">Select a classroom to see its seating arrangement.</p>
-    <div class="map-tabs" role="group" aria-label="Map view" hidden>
-      <button type="button" class="map-tab" data-view="plan" aria-pressed="true">Floor plan</button>
-      <button type="button" class="map-tab" data-view="jv" aria-pressed="false">Jupiter &amp; Venus</button>
+    <p class="lede">Turn the campus, tap a building to see its floors, then tap a classroom to open its seating.</p>
+    <div class="map-chips" id="map-buildings" role="group" aria-label="Buildings" hidden>
+      <button type="button" data-building="lhc" aria-pressed="false">LHC</button>
+      <button type="button" data-building="physics" aria-pressed="false">Physics Block</button>
+      <button type="button" data-building="maths" aria-pressed="false">Maths Block</button>
     </div>
-    <section class="map-card" aria-label="Lecture Hall Complex floor plan">
+    <section class="map-card map-stage" aria-label="Campus map">
+      <canvas id="campus-canvas" class="campus-canvas" tabindex="0" role="img" aria-label="Campus map in 3D. Arrow keys turn and tilt, plus and minus zoom, 0 resets, Escape goes back to the whole campus."></canvas>
+      <div class="map-tip" id="map-tip" hidden></div>
+      <div class="map-tools" id="map-tools" hidden>
+        <div class="tool-group" role="group" aria-label="Turn"><span class="tool-label" aria-hidden="true">Turn</span><button type="button" class="tool-btn" data-act="turn-left" aria-label="Turn left" title="Turn left"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M15 5l-7 7 7 7"/></svg></button><button type="button" class="tool-btn" data-act="turn-right" aria-label="Turn right" title="Turn right"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M9 5l7 7-7 7"/></svg></button></div>
+        <div class="tool-group" role="group" aria-label="Tilt"><span class="tool-label" aria-hidden="true">Tilt</span><button type="button" class="tool-btn" data-act="tilt-up" aria-label="Tilt towards the top view" title="Tilt towards the top view"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M5 15l7-7 7 7"/></svg></button><button type="button" class="tool-btn" data-act="tilt-down" aria-label="Tilt towards the side view" title="Tilt towards the side view"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M5 9l7 7 7-7"/></svg></button></div>
+        <div class="tool-group" role="group" aria-label="Zoom"><span class="tool-label" aria-hidden="true">Zoom</span><button type="button" class="tool-btn" data-act="zoom-out" aria-label="Zoom out" title="Zoom out"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M5 12h14"/></svg></button><button type="button" class="tool-btn" data-act="zoom-in" aria-label="Zoom in" title="Zoom in"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M12 5v14M5 12h14"/></svg></button></div>
+        <button type="button" class="tool-reset" data-act="reset">Reset view</button>
+      </div>
+    </section>
+    <p class="map-hint" id="map-hint" hidden>Drag to turn. Pinch, or hold Ctrl and scroll, to zoom. Shift + drag moves the map.</p>
+    <div class="map-chips" id="map-floors" role="group" aria-label="Floors" hidden></div>
+    <section class="map-detail" id="map-detail" aria-live="polite">
+      <h2 id="detail-title">Lecture Hall Complex</h2>
+      <p class="detail-note" id="detail-note">Floor plan. Tap a hall to open its seating arrangement.</p>
+      <div class="map-pick" id="map-pick" hidden></div>
+      <div class="map-card plan-card" id="plan-lhc">
 <svg class="lhc-map-svg" viewBox="58 122 1210 688" role="group" aria-labelledby="map-title">
 <title id="map-title">Lecture Hall Complex floor plan</title>
 <!-- Floor areas -->
@@ -125,12 +142,18 @@
   <text class="fp-cap" x="1046" y="459" text-anchor="middle">250 seater</text>
 </a>
 </svg>
+      </div>
+      <div class="map-card plan-card" id="plan-gen" hidden></div>
     </section>
+    <noscript>
+      <p class="detail-note">Classrooms: <a href="room.html?room=lhc-aryabhatta">Aryabhatta</a>, <a href="room.html?room=lhc-kaumudi">Kaumudi</a>, <a href="room.html?room=lhc-bhaskara">Bhaskara</a>, <a href="room.html?room=lhc-venus">Venus</a>, <a href="room.html?room=lhc-jupiter">Jupiter</a>.</p>
+    </noscript>
   </main>
   <footer class="site-foot"><nav aria-label="More pages"><a href="index.html">Classrooms</a> <span aria-hidden="true">·</span> <a href="admin.html">Admin</a></nav></footer>
   <script src="js/format.js"></script>
   <script src="js/data.js"></script>
   <script src="js/notify.js"></script>
+  <script src="js/campus-data.js"></script>
   <script src="js/map.js"></script>
   <script src="js/pwa.js"></script>
 </body>

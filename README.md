@@ -13,7 +13,7 @@ Open a classroom to see its seating arrangement, browse its events by date, book
 | `js/room.js` | Classroom page (phones: pull-up dates and events bar; no event is selected until tapped) |
 | `js/cheer.js`, `icons/cheer-cat.png` | "All the best" popup (dancing kitten) for a bookmarked exam from 15 minutes before it starts |
 | `js/notify.js` | Exam reminders: a notification 15 minutes before an exam in which the student marked a seat |
-| `interactive-map.html`, `js/map.js` | Interactive map of the Lecture Hall Complex, drawn like the printed floor plan (two views: Floor plan, and Jupiter & Venus) |
+| `interactive-map.html`, `js/map.js`, `js/campus-data.js` | Interactive 3D map of the LHC, Physics Block and Maths Block placed as on the satellite view; tap a building to pull its floors apart, tap a hall to open its seating; flat floor plan underneath |
 | `admin.html` | Weekly schedule for each classroom: add, edit, reschedule, delete; settings and co-admins (admin only) |
 
 ## For students
@@ -110,6 +110,13 @@ node tests/dev-server.js
 
 Open http://localhost:8788. This runs the real functions against an in-memory database seeded with sample events (admin password `admin`; co-admin `coadmin@example.com` / `coadmin123`). Nothing is saved when you stop it.
 
+## Interactive map
+
+- **Look around.** Drag to turn the campus (mouse or finger), pinch or Ctrl + scroll to zoom, Shift + drag or two fingers to move. The buttons under the map turn, tilt, zoom and reset; the keyboard works too (arrow keys, + and -, 0, Escape).
+- **Buildings and floors.** Tap a building or its button: it opens into Ground, First and Second floor. Pick a floor (button, label or tap) to see it alone; tap a hall for its seat count and the button that opens its seating arrangement. Escape, or tapping empty ground, steps back.
+- **Flat plan.** Below the map the chosen floor is drawn flat. The LHC first and second floors use the printed floor plan with clickable halls; other floors show the outline.
+- **Editing.** Building shapes and rooms are in `js/campus-data.js` (units are satellite-view pixels, y points south). Each building lists `rooms[floor]` as `features` and `rooms`; a room with an `id` opens `room.html?room=<id>`. Roads are `LHC_CAMPUS.roads`.
+
 ## Editing a classroom
 
 Seating arrangements are in `js/data.js`. A room with `layout: null` shows a short notice instead of a map.
@@ -144,7 +151,7 @@ layout: {
 ## Tests
 
 ```
-node tests/smoke-test.js    # layouts, pages, theme, bookmarks, interactive map, one seat per exam, exam reminder, page structure
+node tests/smoke-test.js    # layouts, pages, theme, bookmarks, interactive map (3D data, placement, floor plan), one seat per exam, exam reminder, page structure
 node tests/api-test.js      # sign-in, roles, who-can-add modes, edit/reschedule, delete rules, co-admins
 node tests/error-hint-test.js   # Supabase failures give specific, safe hints
 ```

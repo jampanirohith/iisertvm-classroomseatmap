@@ -147,16 +147,26 @@ dialog h2 { font-size: 18px; }
 [aria-pressed="true"] > svg { fill: currentColor; }
 
 /* ---------- interactive map page ---------- */
-.map-tabs { display: inline-flex; gap: 2px; margin-top: 16px; padding: 3px; border: 1px solid var(--line); border-radius: 10px; background: var(--soft); }
-.map-tab { border: 0; border-radius: 8px; padding: 8px 16px; background: transparent; color: var(--muted); font-size: 14px; font-weight: 600; line-height: 1.2; }
-.map-tab:hover { color: var(--ink); }
-.map-tab[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0, 0, 0, .14); }
-@media (prefers-color-scheme: dark) { .map-tab[aria-pressed="true"] { background: rgba(255, 255, 255, .14); box-shadow: none; } }
 /* The map is drawn like the printed floor plan: a pale sheet with pastel rooms, in light and dark mode alike. */
 .map-card { --m-sheet: #f5f6f7; --m-ink: #1d2540; --m-mauve: #c9b8c1; --m-tan: #d5c5b4; --m-blue: #a9c3d7; --m-wash: #a9c8b4; --m-lobby: #d3dad8;
   --m-lift: #c33c52; --m-hover: #dbe6ff; --m-focus: #1d4ed8;
   --m-serif: "Palatino Linotype", Palatino, "Book Antiqua", "URW Palladio L", Georgia, "Times New Roman", serif;
   margin-top: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--m-sheet); overflow: hidden; color-scheme: light; }
+.map-stage { position: relative; }
+.campus-canvas { display: block; width: 100%; height: clamp(380px, 62vw, 580px); cursor: grab; touch-action: pan-y; -webkit-user-select: none; user-select: none; -webkit-tap-highlight-color: transparent; }
+.campus-canvas:focus-visible { outline: 2px solid var(--m-focus); outline-offset: -2px; }
+.map-tip { position: absolute; z-index: 2; max-width: 240px; padding: 4px 9px; border-radius: 6px; background: var(--m-ink); color: #fff; font-size: 13px; line-height: 1.35; pointer-events: none; white-space: nowrap; }
+.map-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 8px 10px; border-top: 1px solid #dfe3e8; background: #fff; }
+.tool-group { display: inline-flex; align-items: center; gap: 4px; }
+.tool-label { margin-right: 2px; color: #4a5268; font-size: 13px; font-weight: 600; }
+.tool-btn { display: inline-grid; place-items: center; width: 38px; height: 38px; padding: 0; border: 1px solid #b9c0cc; border-radius: 6px; background: #fff; color: var(--m-ink); }
+.tool-btn svg { fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.tool-btn:hover, .tool-reset:hover { background: #eef1f6; }
+.tool-btn:focus-visible, .tool-reset:focus-visible { outline: 2px solid var(--m-focus); outline-offset: 1px; }
+.tool-reset { margin-left: auto; height: 38px; padding: 0 14px; border: 1px solid #b9c0cc; border-radius: 6px; background: #fff; color: var(--m-ink); font-size: 14px; font-weight: 500; }
+.plan-flat { max-height: 440px; }
+.plan-flat .wall { stroke-width: .6; }
+.tone-lawn { fill: #d9e6d2; }
 .lhc-map-svg { display: block; width: 100%; height: auto; font-family: var(--sans); -webkit-user-select: none; user-select: none; }
 .room-fill { stroke: none; }
 .tone-mauve { fill: var(--m-mauve); }
@@ -183,15 +193,31 @@ dialog h2 { font-size: 18px; }
 .room-hit:hover .room-fill, .room-hit:focus-visible .room-fill { fill: var(--m-hover); }
 .room-hit:hover .room-line, .room-hit:focus-visible .room-line { stroke: var(--m-focus); stroke-width: 3.6; }
 @media (max-width: 759px) {
-  .map-tabs { display: flex; }
-  .map-tab { flex: 1; }
   .map-card { margin-left: -14px; margin-right: -14px; border-left: 0; border-right: 0; border-radius: 0; }
+  .campus-canvas { height: min(118vw, 520px); }
+  .map-tools { gap: 8px 10px; }
+  .tool-reset { margin-left: 0; }
   .wall { stroke-width: 3.4; }
   .thin { stroke-width: 1.6; }
   .room-hit:hover .room-line, .room-hit:focus-visible .room-line { stroke-width: 5; }
   .fp-name { font-size: 32px; }
   .fp-cap { font-size: 22px; }
 }
+/* The buttons, notes and room card around the map follow the device's light or dark setting. */
+.map-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.map-chips button { padding: 7px 14px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); font-size: 14px; font-weight: 500; color: var(--muted); }
+.map-chips button:hover { background: var(--soft); color: var(--ink); }
+.map-chips button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+.map-hint { margin: 8px 0 0; color: var(--muted); font-size: 13px; }
+.map-detail { margin-top: 20px; }
+.map-detail h2 { font-size: 20px; }
+.detail-note { margin: 4px 0 0; color: var(--muted); font-size: 15px; }
+.map-detail .map-card { margin-top: 12px; }
+.map-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; margin-top: 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+.map-pick strong { font-size: 16px; }
+.pick-cap { color: var(--muted); font-size: 14px; }
+.map-pick .btn { margin-left: auto; }
+@media (max-width: 759px) { .map-pick .btn { margin-left: 0; } }
 
 /* ---------- classroom page ---------- */
 body.room-page { display: flex; flex-direction: column; min-height: 0; height: 100vh; height: 100dvh; overflow: hidden; }

@@ -1,4 +1,4 @@
-# Patch: exam reminders, one seat per exam, new interactive map, fixes
+# Patch: exam reminders, one seat per exam, 3D interactive map, fixes
 
 Copy these files over your repo (same paths), then commit and push.
 
@@ -16,7 +16,7 @@ Supabase SQL (run in the SQL editor, only when you want them):
 What changed
 - Exam reminder: when a student marks a seat, "Notify me 15 minutes before the exam" is ticked by default. The browser shows its own "Allow notifications?" question (no popup of ours). 15 minutes before the exam a notification shows the course, hall, seat and time; tapping it opens the exam. The tick can be switched off and on from the student's own seat box; unmarking cancels the reminder. Nothing is announced when a seat is marked. Reminders are shown while the site is open in the browser or installed app (a closed browser shows nothing).
 - One seat per student per exam: tapping another seat shows the seat already marked, with an Unmark seat button to choose again. The database enforces it per device (needs schema.sql).
-- Interactive map redrawn from your photo: exact left/right mirror, the printed lettering and colours, two views (Floor plan, and Jupiter & Venus with the two pairs as clickable halls), full width on phones, hover and keyboard focus.
+- Interactive map is now a 3D campus: the LHC, the Physics Block and the Maths Block stand where they do on the satellite view. Drag to turn, tilt, pinch or Ctrl + scroll to zoom; tap a building to pull its floors apart (Ground, First, Second), pick a floor, then tap a hall to open its seating. The LHC first and second floors are drawn from the printed floor plan (Venus and Jupiter on the second floor) and shown flat under the map with clickable halls; the Physics and Maths blocks show their outline on each floor. New file: `js/campus-data.js`.
 - Sweep of every page in light and dark at five screen sizes: no console errors or sideways scrolling; fixed the double heading on the home page, a larger tap area for the phone pull-up bar, and the not-found classroom page.
 - Classroom page: no event is selected on opening a classroom or changing the day; an event is selected only when tapped (links to a specific event still select it).
 - Two exams of different courses can share a hall at the same time: the admin accepts it, the week view shows them side by side, and they share one seat map (a seat marked for one is taken for the other; tapping it says who marked it and for which course).

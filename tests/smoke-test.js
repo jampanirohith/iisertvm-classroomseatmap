@@ -9,7 +9,7 @@ const read = rel => fs.readFileSync(path.join(root, rel), 'utf8');
 const plain = v => JSON.parse(JSON.stringify(v));   // values from the vm sandbox have a different Array prototype
 
 // Every script parses.
-for (const f of ['js/data.js', 'js/store.js', 'js/room.js', 'js/home.js', 'js/map.js', 'js/format.js', 'js/admin.js', 'js/week-calendar.js', 'js/recurrence.js', 'js/cheer.js', 'js/notify.js', 'js/pwa.js', 'sw.js', 'supabase/config.js']) new vm.Script(read(f), { filename: f });
+for (const f of ['js/data.js', 'js/store.js', 'js/room.js', 'js/home.js', 'js/map.js', 'js/campus-data.js', 'js/format.js', 'js/admin.js', 'js/week-calendar.js', 'js/recurrence.js', 'js/cheer.js', 'js/notify.js', 'js/pwa.js', 'sw.js', 'supabase/config.js']) new vm.Script(read(f), { filename: f });
 
 // Classrooms.
 const sandbox = { window: {} };
@@ -115,7 +115,7 @@ for (const page of pages) {
 const mapHtml = read('interactive-map.html');
 for (const room of rooms) assert.ok(mapHtml.includes(`room.html?room=${room.id}`), `map links to ${room.id}`);
 const banned = /\b(provisional|demo|prototype|reconstruct\w*)\b/i;
-for (const f of [...pages, 'css/styles.css', 'js/data.js', 'js/store.js', 'js/room.js', 'js/home.js', 'js/map.js', 'js/format.js', 'js/admin.js', 'js/week-calendar.js', 'js/recurrence.js', 'README.md', 'supabase/schema.sql', 'supabase/seed.sql']) {
+for (const f of [...pages, 'css/styles.css', 'js/data.js', 'js/store.js', 'js/room.js', 'js/home.js', 'js/map.js', 'js/campus-data.js', 'js/format.js', 'js/admin.js', 'js/week-calendar.js', 'js/recurrence.js', 'README.md', 'supabase/schema.sql', 'supabase/seed.sql']) {
   assert.ok(!banned.test(read(f)), `${f}: no leftover working-draft wording`);
 }
 // Recurrence uses calendar-safe ISO dates and supports weekly / selected weekdays.
@@ -252,7 +252,7 @@ console.log('PASS: Cloudflare runtime config, admin session security and permiss
   assert.ok(roomJs.includes('Store.seatSettings()') && roomJs.includes("state.rules.marking !== 'on'") && roomJs.includes('shownName') && read('js/store.js').includes('/api/seat-settings'), 'classroom page follows the admin seat-marking and name-visibility rules');
   assert.ok(['seatMarking', 'seatNames'].every(n => read('admin.html').includes(`name="${n}"`) && read('js/admin.js').includes(n)) && read('supabase/schema.sql').includes("s.key = 'seat_marking'"), 'admin Settings has seat marking and name-visibility options, enforced by the database');
   assert.ok(read('room.html').includes('id="day-strip"') && read('room.html').includes('id="top-cal"') && read('room.html').includes('id="day-prev"') && read('room.html').includes('id="day-next"') && !read('room.html').includes('month-btn'), 'room page has the calendar button and day arrows');
-  { const css = read('css/styles.css'), mapCss = css.slice(css.indexOf('.map-card {'), css.indexOf('/* ---------- classroom page'));
+  { const css = read('css/styles.css'), mapCss = css.slice(css.indexOf('.map-card {'), css.indexOf("/* The buttons, notes and room card around the map"));
     assert.ok(!/class="light-only"/.test(read('interactive-map.html')), 'the page itself follows the device theme');
     assert.ok(['--m-mauve: #c9b8c1', '--m-tan: #d5c5b4', '--m-blue: #a9c3d7', '--m-wash: #a9c8b4', '--m-lift: #c33c52'].every(t => mapCss.includes(t)) && !/var\(--(ink|surface|muted|line|line-strong|accent-soft)\)/.test(mapCss.replace(/border: 1px solid var\(--line\);/, '')), 'only the map uses the printed-plan colours, whatever the device theme'); }
   assert.ok(read('index.html').includes('id="search-input"') && !read('index.html').includes('coming-up') && !read('index.html').includes('next-exams'), 'home has search and no coming-up / upcoming-exams lists');
@@ -264,37 +264,59 @@ console.log('PASS: Cloudflare runtime config, admin session security and permiss
   console.log('PASS: page structure — date column, add-event visibility, calendar, settings');
 }
 
-// Interactive map: drawn like the photographed floor plan, mirrored about its centre line, halls open their classroom pages.
+// Interactive map: a 3D campus (LHC, Physics Block, Maths Block) drawn on a canvas, with the flat floor plan of the LHC below it.
 {
   const html = read('interactive-map.html'), css = read('css/styles.css'), script = read('js/map.js');
-  const svg = html.slice(html.indexOf('<svg'), html.indexOf('</svg>'));
+  const svg = html.slice(html.indexOf('<svg class="lhc-map-svg"'), html.indexOf('</svg>', html.indexOf('<svg class="lhc-map-svg"')));
   const points = id => { const m = new RegExp(`id="${id}" points="([^"]+)"`).exec(svg); assert.ok(m, `map has polygon ${id}`); return m[1].trim().split(/\s+/).map(p => p.split(',').map(Number)); };
   const AX = 640, key = p => `${p[0]},${p[1]}`;
   const mirrored = (a, b) => { const left = points(a).map(([x, y]) => key([2 * AX - x, y])).sort(), right = points(b).map(key).sort(); return JSON.stringify(left) === JSON.stringify(right); };
   const selfMirrored = id => mirrored(id, id);
 
-  assert.ok(/<svg class="lhc-map-svg" viewBox="[\d.]+ [\d.]+ [\d.]+ [\d.]+"/.test(svg) && !/role="img"/.test(svg), 'the map is one scalable SVG whose links stay reachable (no role="img")');
-  assert.ok(!/min-width:\s*\d+px/.test(css.slice(css.indexOf('.lhc-map-svg {'), css.indexOf('.room-fill {'))), 'the map scales to the screen, no sideways scrolling');
-  // What the printed plan shows.
+  // The 3D map: one canvas, controls that appear only when the script runs, the campus data loaded before the drawing code.
+  assert.ok(/<canvas id="campus-canvas"[^>]*tabindex="0"[^>]*aria-label="/.test(html), 'the 3D map is a focusable canvas with a label');
+  assert.ok(html.indexOf('js/campus-data.js') > 0 && html.indexOf('js/campus-data.js') < html.indexOf('js/map.js'), 'campus data is loaded before the map script');
+  for (const id of ['map-buildings', 'map-tools', 'map-hint', 'map-floors']) assert.ok(new RegExp(`id="${id}"[^>]* hidden`).test(html) && script.includes(id), `${id} is hidden until the script runs`);
+  for (const act of ['turn-left', 'turn-right', 'tilt-up', 'tilt-down', 'zoom-in', 'zoom-out', 'reset']) assert.ok(html.includes(`data-act="${act}"`), `button for ${act}`);
+  assert.ok(/\.campus-canvas \{[^}]*touch-action: pan-y/.test(css) && script.includes('ctrlKey') && script.includes('pointerdown') && script.includes("e.key") && script.includes('prefers-reduced-motion'), 'drag, pinch, Ctrl + scroll, keys, reduced motion');
+  assert.ok(!/min-width:\s*\d+px/.test(css.slice(css.indexOf('.campus-canvas {'), css.indexOf('.room-fill {'))), 'the map scales to the screen, no sideways scrolling');
+  // The campus data: three buildings, three floors each, in the places they stand on the satellite view.
+  {
+    const ctx = { window: {} }; vm.runInNewContext(read('js/campus-data.js'), ctx);
+    const campus = plain(ctx.window.LHC_CAMPUS), byId = Object.fromEntries(campus.buildings.map(b => [b.id, b]));
+    assert.deepEqual(campus.buildings.map(b => b.id).sort(), ['lhc', 'maths', 'physics']);
+    for (const b of campus.buildings) {
+      assert.deepEqual(b.floors.map(f => f.id), ['g', '1', '2'], `${b.id} has a ground, first and second floor`);
+      assert.ok(b.outline.length >= 8 && b.centre.length === 2 && (!b.labelAt || b.labelAt.length === 2), `${b.id} has a footprint`);
+      for (const f of b.floors) assert.ok(b.notes[f.id] && b.rooms[f.id], `${b.id} ${f.id}: note and rooms`);
+    }
+    assert.equal(byId.physics.holes.length, 2, 'the Physics Block has two courtyards');
+    const [lx, ly] = byId.lhc.centre, [mx, my] = byId.maths.centre, [px, py] = byId.physics.centre;
+    assert.ok(ly < my && ly < py && mx < px && my > ly + 150, 'LHC is north of Maths and Physics, Maths is west of Physics');
+    const ids = f => byId.lhc.rooms[f].rooms.map(r => r.id).filter(Boolean).sort();
+    assert.deepEqual(ids('1'), ['lhc-aryabhatta', 'lhc-bhaskara', 'lhc-kaumudi']);
+    assert.deepEqual(ids('2'), ['lhc-aryabhatta', 'lhc-bhaskara', 'lhc-jupiter', 'lhc-kaumudi', 'lhc-venus'], 'Jupiter and Venus are on the second floor');
+    assert.equal(byId.lhc.rooms['1'].rooms.filter(r => !r.id).length, 4, 'four 50-seater rooms on the first floor');
+    for (const f of ['1', '2']) for (const r of byId.lhc.rooms[f].rooms) { assert.ok(!r.id || rooms.some(x => x.id === r.id), `${r.id} is a classroom of the app`); assert.ok(r.poly.length >= 4); }
+  }
+  // The flat LHC floor plan below the 3D map: what the printed plan shows.
+  assert.ok(/<svg class="lhc-map-svg" viewBox="[\d.]+ [\d.]+ [\d.]+ [\d.]+"/.test(svg) && !/role="img"/.test(svg), 'the plan is one scalable SVG whose links stay reachable (no role="img")');
   for (const text of ['Aryabhatta', '500 seater', 'Kaumudi', '200 seater', 'Bhaskara', '250 seater', 'G N Ramachandran', 'P C Ray', 'C V Raman', 'S Ramanujan', 'Lobby'])
-    assert.ok(svg.includes(`>${text}</text>`), `map shows "${text}"`);
+    assert.ok(svg.includes(`>${text}</text>`), `plan shows "${text}"`);
   const count = text => (svg.match(new RegExp(`>${text}</text>`, 'g')) || []).length;
   assert.equal(count('50 seater'), 4, 'four 50-seater rooms');
   assert.equal(count('WASH'), 2); assert.equal(count('STAIRS'), 3); assert.equal(count('EXIT'), 3); assert.equal(count('LIFT'), 3);
   assert.ok(!/You are/i.test(svg), 'no "You are here" sticker');
-  // Aryabhatta, Kaumudi and Bhaskara open their classroom pages; the four small rooms are plain; Jupiter and Venus sit in the second view.
   const planView = svg.slice(svg.indexOf('id="view-plan"'), svg.indexOf('id="view-jv"')), jvView = svg.slice(svg.indexOf('id="view-jv"'), svg.indexOf('<!-- Corridor walls -->'));
   assert.ok(!planView.includes('href='), 'the four 50-seater rooms are not links');
-  assert.deepEqual(jvView.match(/href="room\.html\?room=[\w-]+"/g), ['href="room.html?room=lhc-venus"', 'href="room.html?room=lhc-jupiter"'], 'Jupiter and Venus links are in the second view');
-  assert.ok(/id="view-jv" hidden/.test(svg), 'the floor plan is the first view');
-  for (const id of ['lhc-aryabhatta', 'lhc-kaumudi', 'lhc-bhaskara']) assert.ok(svg.replace(jvView, '').includes(`href="room.html?room=${id}"`), `${id} is linked from the floor plan`);
-  // The centre of the building is an exact mirror image.
+  assert.deepEqual(jvView.match(/href="room\.html\?room=[\w-]+"/g), ['href="room.html?room=lhc-venus"', 'href="room.html?room=lhc-jupiter"'], 'Jupiter and Venus links are in the second-floor view');
+  assert.ok(/id="view-jv" hidden/.test(svg), 'the first-floor plan is shown first');
+  for (const id of ['lhc-aryabhatta', 'lhc-kaumudi', 'lhc-bhaskara']) assert.ok(svg.replace(jvView, '').includes(`href="room.html?room=${id}"`), `${id} is linked from the first-floor plan`);
+  assert.ok(/<noscript>[\s\S]*room\.html\?room=lhc-jupiter/.test(html), 'without scripts the halls are still listed as links');
   assert.ok(selfMirrored('hall-aryabhatta') && selfMirrored('lobby-fill'), 'Aryabhatta and the lobby are centred');
   assert.ok(mirrored('lift-l', 'lift-r') && mirrored('room-gn', 'room-cv') && mirrored('room-pc', 'room-sr') && mirrored('hall-venus', 'hall-jupiter'), 'lifts and the room pairs mirror left and right');
-  // Switching views uses the attribute (SVG groups have no .hidden), and the buttons appear only when the script runs.
-  assert.ok(script.includes("toggleAttribute('hidden'") && /class="map-tabs"[^>]* hidden/.test(html) && script.includes('bar.hidden = false'), 'view buttons: shown by the script, switch with the hidden attribute');
-  for (const view of ['plan', 'jv']) assert.ok(html.includes(`data-view="${view}"`), `button for ${view}`);
-  console.log('PASS: interactive map — plan, labels, links, views, mirror symmetry');
+  assert.ok(script.includes("toggleAttribute('hidden'"), 'floors switch the plan with the hidden attribute (SVG groups have no .hidden)');
+  console.log('PASS: interactive map — 3D campus data and page, LHC floor plan, links, mirror symmetry');
 }
 
 // Install as an app: manifest, icons, service worker on every page; Chrome's own install prompt is left alone.
