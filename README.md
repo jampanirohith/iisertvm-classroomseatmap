@@ -14,7 +14,7 @@ Open a classroom to see its seating arrangement, browse its events by date, book
 | `js/cheer.js`, `icons/cheer-cat.png` | "All the best" popup (dancing kitten) for a bookmarked exam from 15 minutes before it starts |
 | `js/notify.js` | Exam reminders: a notification 15 minutes before an exam in which the student marked a seat |
 | `interactive-map.html`, `js/map.js`, `js/campus-data.js` | Interactive 3D map of the LHC, Physics Block and Maths Block placed as on the satellite view; tap a building to pull its floors apart, tap a hall to open its seating; flat floor plan underneath |
-| `admin.html` | Weekly schedule for each classroom: add, edit, reschedule, delete; settings and co-admins (admin only) |
+| `admin.html` | Weekly schedule for each classroom: add, edit, reschedule, delete; **Seats booked** report for every exam, printable as a PDF; settings and co-admins (admin only) |
 
 ## For students
 
@@ -37,6 +37,15 @@ Sign in at `admin.html`. The **Schedule** tab is a weekly calendar (Monday to Su
 - **Drag an event** (mouse) to another time or day to reschedule it. On touch screens, use **Edit**.
 - Classes can repeat weekly or on chosen weekdays; each occurrence is a separate event you can edit or delete on its own.
 - Classes and other events need the classroom to themselves (back-to-back is fine). Exams of different courses can share a classroom at the same time: the week view shows them side by side and they share one seat map. An exam can never overlap a class. If a new event clashes, the form lists what is in the way and the admin can replace those events with one click.
+
+### Seats booked
+
+The **Seats booked** tab (admin and co-admins) lists every exam with the seats students marked for it, grouped by classroom and sorted by date and time. Each exam shows its date, time, teacher, the number of seats booked, and a table of seat number and name in seat order. Seat marking is for exams only, so classes do not appear.
+
+- **Classroom**: all classrooms or one. **Dates**: today and later (default), earlier dates, or all dates.
+- **Show**: only exams with seats booked (default) or all exams, including those nobody has marked a seat for.
+- **Refresh** reloads the latest marks.
+- **Print or save as PDF** opens the print dialog; choose **Save as PDF** as the destination. The page prints on A4 with only the report, page numbers, and the exam heading repeated on every page of a long list. The file name proposed is "Seats booked - classroom - date".
 
 ### Settings (admin only)
 
@@ -151,7 +160,7 @@ layout: {
 ## Tests
 
 ```
-node tests/smoke-test.js    # layouts, pages, theme, bookmarks, interactive map (3D data, placement, floor plan), one seat per exam, exam reminder, page structure
+node tests/smoke-test.js    # layouts, pages, theme, bookmarks, interactive map (3D data, placement, floor plan), one seat per exam, exam reminder, seats-booked report and print layout, page structure
 node tests/api-test.js      # sign-in, roles, who-can-add modes, edit/reschedule, delete rules, co-admins
 node tests/error-hint-test.js   # Supabase failures give specific, safe hints
 ```

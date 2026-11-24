@@ -37,10 +37,10 @@ const shim = `window.supabase = { createClient() { return {
     return r.ok ? { data, error: null } : { data: null, error: data || { message: 'error' } };
   },
   from(table) {
-    const filters = [], orders = []; let op = 'select', payload;
-    const q = { select() { return q; }, eq(c, v) { filters.push([c, 'eq.' + v]); return q; }, in(c, vs) { filters.push([c, 'in.(' + vs.join(',') + ')']); return q; }, order(c) { orders.push(c); return q; }, insert(row) { op = 'insert'; payload = row; return q; }, then(res, rej) { return run().then(res, rej); } };
+    const filters = [], orders = []; let op = 'select', payload, skip = 0, take = 0;
+    const q = { select() { return q; }, eq(c, v) { filters.push([c, 'eq.' + v]); return q; }, in(c, vs) { filters.push([c, 'in.(' + vs.join(',') + ')']); return q; }, order(c) { orders.push(c); return q; }, range(a, b) { skip = a; take = b - a + 1; return q; }, insert(row) { op = 'insert'; payload = row; return q; }, then(res, rej) { return run().then(res, rej); } };
     async function run() {
-      const params = new URLSearchParams(); filters.forEach(([c, expr]) => params.append(c, expr)); if (orders.length) params.set('order', orders.map(o => o + '.asc').join(','));
+      const params = new URLSearchParams(); filters.forEach(([c, expr]) => params.append(c, expr)); if (orders.length) params.set('order', orders.map(o => o + '.asc').join(',')); if (take) { params.set('offset', skip); params.set('limit', take); }
       const r = await fetch('/__dev/rest/' + table + '?' + params, { method: op === 'insert' ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json' }, body: op === 'insert' ? JSON.stringify([].concat(payload)) : undefined });
       const data = await r.json().catch(() => null);
       return r.ok ? { data, error: null } : { data: null, error: data || { message: 'error' } };

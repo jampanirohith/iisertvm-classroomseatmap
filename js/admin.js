@@ -47,8 +47,10 @@
     $('login-panel').classList.toggle('admin-hidden', inConsole);
     $('admin-console').classList.toggle('admin-hidden', !inConsole);
     $('admin-logout').classList.toggle('admin-hidden', !role());
+    $('tab-seats').hidden = !role();
     $('tab-settings').hidden = role() !== 'admin';
-    if (role() !== 'admin') selectTab('schedule');
+    if (!role()) clearSeats();
+    if (!tabAvailable(currentTab)) selectTab('schedule');
     const mode = state.session ? state.session.mode : 'admin';
     $('guest-continue').hidden = mode !== 'anyone';
     $('login-intro').textContent = mode === 'anyone' ? 'Anyone can add events. Sign in as admin or co-admin to also delete them.' : 'Sign in to add or remove classroom events.';
@@ -106,14 +108,21 @@
   });
 
   // ---------- tabs ----------
+  let currentTab = 'schedule';
+  document.body.dataset.view = currentTab;
+  const tabAvailable = name => name === 'schedule' || (name === 'seats' && Boolean(role())) || (name === 'settings' && role() === 'admin');
   function selectTab(name) {
-    ['schedule', 'settings'].forEach(t => {
+    currentTab = name;
+    ['schedule', 'seats', 'settings'].forEach(t => {
       $(`tab-${t}`).setAttribute('aria-selected', String(t === name));
       $(`panel-${t}`).hidden = t !== name;
     });
+    document.body.dataset.view = name;
+    if (name === 'seats') loadSeats();
     if (name === 'settings') loadSettings();
   }
   $('tab-schedule').addEventListener('click', () => selectTab('schedule'));
+  $('tab-seats').addEventListener('click', () => selectTab('seats'));
   $('tab-settings').addEventListener('click', () => selectTab('settings'));
 
   // ---------- schedule ----------
@@ -354,6 +363,103 @@
       if (error.status === 401) { detailDialog.close(); await loadSession(); }
     }
   });
+
+  // ---------- seats booked ----------
+  // Seat marks exist for exams only, so the report lists every exam with the seats marked for it, grouped by classroom.
+  const seatsRoom = $('seats-room'), seatsWhen = $('seats-when'), seatsEmpty = $('seats-empty');
+  const seatsReport = $('seats-report'), seatsMessage = $('seats-message'), seatsPrint = $('seats-print');
+  const WHEN = { upcoming: 'Today and later', past: 'Earlier dates', all: 'All dates' };
+  let seatsData = null;       // { exams, marks, at } for the filters in use
+  let seatsRun = 0;           // a newer load makes an older one stop
+  rooms.forEach(room => {
+    const option = document.createElement('option');
+    option.value = room.id;
+    option.textContent = room.name;
+    seatsRoom.appendChild(option);
+  });
+
+  function clearSeats() {
+    seatsRun++;
+    seatsData = null;
+    seatsReport.innerHTML = '';
+    setMessage(seatsMessage, '');
+    seatsPrint.disabled = true;
+  }
+
+  async function loadSeats() {
+    if (!role()) return;
+    const run = ++seatsRun;
+    seatsPrint.disabled = true;
+    setMessage(seatsMessage, 'Loading seats…');
+    try {
+      const ids = seatsRoom.value ? [seatsRoom.value] : rooms.map(r => r.id);
+      const lists = await Promise.all(ids.map(id => api(`/api/admin/events?roomId=${encodeURIComponent(id)}`)));
+      const today = F.todayISO(), when = seatsWhen.value;
+      const exams = lists.flatMap(result => (result.events || []).map(normalize))
+        .filter(ev => ev.type === 'exam' && (when === 'all' || (when === 'past' ? ev.date < today : ev.date >= today)));
+      await window.LHC_STORE.init();
+      const marks = await window.LHC_STORE.listMarks(exams.map(ev => ev.id));
+      if (run !== seatsRun) return;
+      seatsData = { exams, marks, at: new Date() };
+      setMessage(seatsMessage, '');
+      renderSeats();
+    } catch (error) {
+      if (run !== seatsRun) return;
+      if (error.status === 401) { await loadSession(); return; }
+      seatsData = null;
+      seatsReport.innerHTML = '';
+      setMessage(seatsMessage, error.message || 'Could not load the seats.', 'error');
+    }
+  }
+
+  const seatsFilterText = () => `${seatsRoom.value ? (roomOf(seatsRoom.value) || {}).name : 'All classrooms'} · ${WHEN[seatsWhen.value]}`;
+
+  function renderSeats() {
+    if (!seatsData) return;
+    const { exams, marks, at } = seatsData;
+    const shown = exams.filter(ev => seatsEmpty.value === 'all' || marks[ev.id].length)
+      .sort((a, b) => `${a.date}T${a.start}`.localeCompare(`${b.date}T${b.start}`) || a.title.localeCompare(b.title));
+    const total = shown.reduce((n, ev) => n + marks[ev.id].length, 0);
+    const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+    const stamp = `Prepared ${F.dateShort(F.isoOf(at))} ${at.getFullYear()}, ${F.timeLabel(`${F.pad(at.getHours())}:${F.pad(at.getMinutes())}`)}`;
+    let html = `<header class="seats-head"><p class="seats-brand">IISER TVM Lecture Hall Complex</p><h2>Seats booked</h2>
+      <p>${F.esc(seatsFilterText())}</p><p>${shown.length ? `${plural(shown.length, 'exam')} · ${plural(total, 'seat')} booked · ` : ''}${F.esc(stamp)}</p></header>`;
+    if (!shown.length) {
+      html += `<p class="seats-none">${exams.length ? 'No seats are booked for the exams in this view.' : 'There are no exams in this view.'}</p>`;
+    }
+    rooms.forEach(room => {
+      const list = shown.filter(ev => ev.roomId === room.id);
+      if (!list.length) return;
+      html += `<section class="seats-room"><h3>${F.esc(room.name)} <span>${plural(list.reduce((n, ev) => n + marks[ev.id].length, 0), 'seat')} booked</span></h3>`;
+      list.forEach(ev => {
+        const seats = marks[ev.id];
+        const meta = [F.dateLong(ev.date), F.timeRange(ev.start, ev.end), ev.professor].filter(Boolean);
+        // Two seats per row; the exam heading is the table head, so it repeats when a long list runs onto the next page.
+        html += `<table class="seats-exam${seats.length <= 16 ? ' short' : ''}"><colgroup><col class="n"><col><col class="n"><col></colgroup><thead><tr><td colspan="4"><div class="seats-exam-head"><div><h4>${F.esc(ev.title)}</h4><p>${meta.map(F.esc).join(' · ')}</p></div><strong>${plural(seats.length, 'seat')}</strong></div></td></tr>`;
+        if (seats.length) html += '<tr class="seats-cols"><th scope="col">Seat</th><th scope="col">Name</th><th scope="col">Seat</th><th scope="col">Name</th></tr>';
+        html += '</thead><tbody>';
+        const cell = m => (m ? `<td class="n">${F.esc(m.seat)}</td><td class="who">${m.name ? F.esc(m.name) : '—'}</td>` : '<td></td><td></td>');
+        if (!seats.length) html += '<tr><td colspan="4" class="seats-none">No seats booked.</td></tr>';
+        for (let i = 0; i < seats.length; i += 2) html += `<tr>${cell(seats[i])}${cell(seats[i + 1])}</tr>`;
+        html += '</tbody></table>';
+      });
+      html += '</section>';
+    });
+    seatsReport.innerHTML = html;
+    seatsPrint.disabled = !shown.length;
+  }
+
+  seatsRoom.addEventListener('change', loadSeats);
+  seatsWhen.addEventListener('change', loadSeats);
+  seatsEmpty.addEventListener('change', renderSeats);
+  $('seats-refresh').addEventListener('click', loadSeats);
+  seatsPrint.addEventListener('click', () => window.print());
+  // The browser proposes the page title as the PDF's file name.
+  const pageTitle = document.title;
+  window.addEventListener('beforeprint', () => {
+    if (currentTab === 'seats' && seatsData) document.title = `Seats booked - ${(seatsRoom.value ? (roomOf(seatsRoom.value) || {}).name : 'All classrooms')} - ${F.todayISO()}`;
+  });
+  window.addEventListener('afterprint', () => { document.title = pageTitle; });
 
   // ---------- settings (admin only) ----------
   async function loadSettings() {

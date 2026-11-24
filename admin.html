@@ -46,6 +46,7 @@
     <div id="admin-console" class="admin-hidden">
       <nav class="admin-tabs" role="tablist" aria-label="Admin sections">
         <button type="button" role="tab" id="tab-schedule" aria-selected="true">Schedule</button>
+        <button type="button" role="tab" id="tab-seats" aria-selected="false" hidden>Seats booked</button>
         <button type="button" role="tab" id="tab-settings" aria-selected="false" hidden>Settings</button>
       </nav>
 
@@ -59,6 +60,29 @@
         <div id="calendar"></div>
         <div class="cal-legend"><span><i class="type-dot"></i>Class</span><span><i class="type-dot" data-type="exam"></i>Exam</span><span><i class="type-dot" data-type="other"></i>Other</span></div>
         <p class="admin-message" id="manager-message" role="status" aria-live="polite"></p>
+      </section>
+
+      <section id="panel-seats" aria-labelledby="tab-seats" hidden>
+        <div class="admin-toolbar seats-toolbar">
+          <label class="seats-filter">Classroom
+            <select id="seats-room"><option value="">All classrooms</option></select>
+          </label>
+          <label class="seats-filter">Dates
+            <select id="seats-when">
+              <option value="upcoming">Today and later</option>
+              <option value="past">Earlier dates</option>
+              <option value="all">All dates</option>
+            </select>
+          </label>
+          <label class="seats-filter">Show
+            <select id="seats-empty"><option value="booked">Seats booked</option><option value="all">All exams</option></select>
+          </label>
+          <span class="spacer"></span>
+          <button type="button" class="btn" id="seats-refresh">Refresh</button>
+          <button type="button" class="btn primary" id="seats-print">Print or save as PDF</button>
+        </div>
+        <p class="admin-message" id="seats-message" role="status" aria-live="polite"></p>
+        <div id="seats-report" class="seats-report"></div>
       </section>
 
       <section id="panel-settings" aria-labelledby="tab-settings" hidden>

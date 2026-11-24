@@ -190,6 +190,28 @@
       return out;
     },
 
+    // Every seat mark of the given exams, for the admin's report: { [eventId]: [{ seat, name }] } with the seats in number order.
+    async listMarks(eventIds) {
+      const ids = [...new Set(eventIds.map(String))];
+      const out = Object.fromEntries(ids.map(id => [id, []]));
+      if (client) {
+        for (let i = 0; i < ids.length; i += 40) {
+          const chunk = ids.slice(i, i + 40);
+          for (let from = 0; ; from += 1000) {      // the database hands back at most 1000 rows at a time
+            const { data, error } = await client.from('seat_marks').select('event_id,seat_id,display_name').in('event_id', chunk).order('event_id').order('seat_id').range(from, from + 999);
+            if (error) throw error;
+            data.forEach(r => out[String(r.event_id)].push({ seat: r.seat_id, name: r.display_name }));
+            if (data.length < 1000) break;
+          }
+        }
+      } else {
+        const all = read(K.bookings, {});
+        ids.forEach(id => Object.entries(all).forEach(([key, v]) => { if (key.startsWith(`${id}::`)) out[id].push({ seat: key.slice(id.length + 2), name: v.name }); }));
+      }
+      ids.forEach(id => out[id].sort((a, b) => a.seat.localeCompare(b.seat, undefined, { numeric: true })));
+      return out;
+    },
+
     // One seat per student per exam. Returns { ok: true }, or { ok: false, reason: 'taken' | 'already', seat? }:
     // 'taken' when someone else has that seat, 'already' when this device already marked a seat for the exam.
     async book(eventId, seatId, name) {

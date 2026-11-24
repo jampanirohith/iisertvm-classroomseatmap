@@ -356,6 +356,28 @@ body.room-page { display: flex; flex-direction: column; min-height: 0; height: 1
 .admin-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
 .admin-toolbar select { padding: 8px 11px; border: 1px solid var(--line-strong); border-radius: 6px; background: var(--surface); color: var(--ink); font-weight: 500; }
 .admin-toolbar .spacer { flex: 1; }
+/* Seats booked report: one block per exam, grouped by classroom. It is also the print layout. */
+.seats-filter { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 14px; }
+.seats-head h2 { margin: 0; font-size: 20px; }
+.seats-head p { margin: 2px 0 0; color: var(--muted); font-size: 14px; }
+.seats-head .seats-brand { display: none; }
+.seats-room { margin-top: 26px; }
+.seats-room > h3 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; margin: 0; padding-bottom: 6px; border-bottom: 2px solid var(--ink); font-size: 17px; }
+.seats-room > h3 span { color: var(--muted); font-size: 14px; font-weight: 400; }
+.seats-exam { width: 100%; margin-top: 4px; table-layout: fixed; border-collapse: collapse; border-bottom: 1px solid var(--line-strong); }
+.seats-exam td, .seats-exam th { padding: 3px 0; border-bottom: 1px solid var(--line); font-size: 14px; text-align: left; vertical-align: top; }
+.seats-exam thead td { padding: 14px 0 6px; border-bottom: 0; }
+.seats-exam .seats-cols th { padding-bottom: 4px; border-bottom: 1px solid var(--line-strong); color: var(--muted); font-size: 12px; font-weight: 500; letter-spacing: .04em; text-transform: uppercase; }
+.seats-exam tbody:last-child tr:last-child td { padding-bottom: 3px; }
+.seats-exam col.n { width: 3.4em; }
+.seats-exam td.n { font-weight: 600; font-variant-numeric: tabular-nums; }
+.seats-exam .who { padding-right: 24px; overflow-wrap: anywhere; }
+.seats-exam-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px 16px; }
+.seats-exam-head h4 { margin: 0; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+.seats-exam-head p { margin: 1px 0 0; color: var(--muted); font-size: 14px; }
+.seats-exam-head strong { font-size: 14px; white-space: nowrap; }
+.seats-none { margin: 10px 0 0; color: var(--muted); font-size: 14px; }
+.seats-exam td.seats-none { margin: 0; padding: 4px 0 10px; border-bottom: 0; }
 .admin-repeat { margin: 12px 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 6px; background: var(--soft); }
 .admin-repeat-toggle { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
 .admin-repeat-toggle small { display: block; color: var(--muted); font-size: 13px; }
@@ -531,3 +553,33 @@ body.room-page #toast { bottom: 140px; }
 .my-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
 .my-head .section-title { margin: 0; }
 .past-toggle { padding: 6px 10px; font-size: 13px; }
+
+/* ---------- printing the seats report (save as PDF from the print dialog) ---------- */
+@media print {
+  @page {
+    size: A4; margin: 16mm 15mm 18mm;
+    @bottom-left { content: "IISER TVM Lecture Hall Complex · Seats booked"; font: 8.5pt Arial, Helvetica, sans-serif; color: #555; }
+    @bottom-right { content: "Page " counter(page) " of " counter(pages); font: 8.5pt Arial, Helvetica, sans-serif; color: #555; }
+  }
+  html, body[data-view="seats"] { background: #fff !important; background-image: none !important; color: #000; }
+  body[data-view="seats"] { display: block; min-height: 0; font: 10.5pt/1.4 Arial, Helvetica, sans-serif; }
+  body[data-view="seats"] .shell { max-width: none; padding: 0; }
+  body[data-view="seats"] .admin-top, body[data-view="seats"] .admin-tabs, body[data-view="seats"] .seats-toolbar,
+  body[data-view="seats"] #seats-message, body[data-view="seats"] #panel-schedule, body[data-view="seats"] #panel-settings,
+  body[data-view="seats"] #login-panel, body[data-view="seats"] .site-foot { display: none !important; }
+  body[data-view="seats"] .seats-head { margin-bottom: 6mm; padding-bottom: 3mm; border-bottom: 0.4mm solid #000; }
+  body[data-view="seats"] .seats-head .seats-brand { display: block; margin: 0 0 1mm; color: #444; font-size: 9pt; letter-spacing: .06em; text-transform: uppercase; }
+  body[data-view="seats"] .seats-head h2 { font-size: 20pt; color: #000; }
+  body[data-view="seats"] .seats-head p { color: #333; font-size: 10pt; }
+  body[data-view="seats"] .seats-room { margin-top: 7mm; }
+  body[data-view="seats"] .seats-room > h3 { break-after: avoid; border-bottom: 0.4mm solid #000; color: #000; font-size: 14pt; }
+  body[data-view="seats"] .seats-room > h3 span, body[data-view="seats"] .seats-exam-head p, body[data-view="seats"] .seats-none { color: #333; }
+  body[data-view="seats"] .seats-exam { margin-top: 2mm; border-bottom: 0.2mm solid #999; }
+  body[data-view="seats"] .seats-exam.short { break-inside: avoid; }
+  body[data-view="seats"] .seats-exam tr { break-inside: avoid; }
+  body[data-view="seats"] .seats-exam td, body[data-view="seats"] .seats-exam th { padding: 0.8mm 0; border-bottom: 0.15mm solid #ccc; font-size: 10pt; }
+  body[data-view="seats"] .seats-exam thead td { padding: 4mm 0 1.5mm; border-bottom: 0; }
+  body[data-view="seats"] .seats-exam .seats-cols th { border-bottom: 0.25mm solid #666; color: #333; font-size: 8pt; }
+  body[data-view="seats"] .seats-exam-head h4 { color: #000; font-size: 11.5pt; }
+  body[data-view="seats"] .seats-exam td.seats-none { color: #333; }
+}

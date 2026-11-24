@@ -45,7 +45,7 @@ function install() {
     const prefer = (init.headers && init.headers.Prefer) || '';
     const filters = [];
     for (const [key, value] of url.searchParams) {
-      if (['select', 'order', 'limit', 'on_conflict'].includes(key)) continue;
+      if (['select', 'order', 'limit', 'offset', 'on_conflict'].includes(key)) continue;
       if (key === 'and') value.slice(1, -1).split(',').forEach(part => { const [col, ...r] = part.split('.'); filters.push([col, r.join('.')]); });
       else filters.push([key, value]);
     }
@@ -61,6 +61,7 @@ function install() {
       let list = selected();
       const order = url.searchParams.get('order');
       if (order) for (const part of order.split(',').reverse()) { const [col, dir] = part.split('.'); list.sort((a, b) => String(a[col]).localeCompare(String(b[col])) * (dir === 'desc' ? -1 : 1)); }
+      list = list.slice(Number(url.searchParams.get('offset')) || 0);
       const limit = Number(url.searchParams.get('limit'));
       if (limit) list = list.slice(0, limit);
       return json(project(list));

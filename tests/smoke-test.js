@@ -567,3 +567,66 @@ console.log('PASS: Cloudflare runtime config, admin session security and permiss
   assert.ok(def.includes("params.get('event')") && !def.includes('todayISO') && !def.includes('events[0]'), 'only an ?event= link selects an event on open');
   console.log('PASS: no event is selected automatically');
 }
+
+// Seats booked report: the store lists the marks of many exams in seat order (this device, or the shared database in pages).
+(async () => {
+  const values = new Map();
+  const localStorage = { getItem: k => (values.has(k) ? values.get(k) : null), setItem: (k, v) => values.set(k, String(v)), removeItem: k => values.delete(k) };
+  const ctx = { window: { addEventListener() {} }, localStorage, console };
+  vm.runInNewContext(read('js/store.js'), ctx);
+  const store = ctx.window.LHC_STORE;
+  await store.init();
+  const [one, ten] = await store.addEvents('lhc-jupiter', [
+    { title: 'Exam A', type: 'exam', date: '2026-12-01', start: '09:00', end: '10:00' },
+    { title: 'Exam B', type: 'exam', date: '2026-12-02', start: '09:00', end: '10:00' }
+  ]);
+  for (const [seat, name] of [['112', 'Zed'], ['5', 'Asha'], ['14', 'Ravi']]) { values.delete('lhc-device-v1'); values.delete('lhc-my-seats-v4'); assert.equal((await store.book(one.id, seat, name)).ok, true); }
+  const marks = await store.listMarks([one.id, ten.id, one.id]);
+  assert.deepEqual(Array.from(marks[one.id], m => `${m.seat}:${m.name}`), ['5:Asha', '14:Ravi', '112:Zed'], 'seats come back in number order');
+  assert.deepEqual(Array.from(marks[ten.id]), [], 'an exam without seats gets an empty list');
+  assert.equal(Object.keys(marks).length, 2, 'repeated ids are listed once');
+
+  // Shared database: 40 exam ids per request and 1000 rows per page, all of them collected.
+  const rows = [];
+  for (let i = 1; i <= 1500; i++) rows.push({ event_id: 'big', seat_id: String(i), display_name: `P${i}` });
+  for (let i = 1; i <= 3; i++) rows.push({ event_id: 'small', seat_id: String(i), display_name: `S${i}` });
+  const asked = [];
+  const fakeClient = {
+    channel() { const c = { on: () => c, subscribe: () => c }; return c; },
+    from(table) {
+      assert.equal(table, 'seat_marks');
+      let ids = [], from = 0, to = 999;
+      const q = { select: () => q, in: (_, list) => { ids = list; asked.push(list.length); return q; }, order: () => q, range: (a, b) => { from = a; to = b; return q; },
+        then: (ok, fail) => Promise.resolve({ data: rows.filter(r => ids.includes(r.event_id)).sort((a, b) => a.event_id.localeCompare(b.event_id) || a.seat_id.localeCompare(b.seat_id)).slice(from, Math.min(to, from + 999) + 1), error: null }).then(ok, fail) };
+      return q;
+    }
+  };
+  const shared = { window: { addEventListener() {}, SUPABASE_CONFIG: { url: 'https://example.test', publishableKey: 'k' }, supabase: { createClient: () => fakeClient } }, localStorage, console };
+  vm.runInNewContext(read('js/store.js'), shared);
+  const sharedStore = shared.window.LHC_STORE;
+  assert.equal((await sharedStore.init()).shared, true);
+  const ids = ['big', 'small', ...Array.from({ length: 85 }, (_, i) => `none${i}`)];
+  const all = await sharedStore.listMarks(ids);
+  assert.equal(all.big.length, 1500, 'more than 1000 rows are read page by page');
+  assert.equal(all.big[0].seat, '1'); assert.equal(all.big[1499].seat, '1500');
+  assert.equal(all.small.length, 3);
+  assert.ok(asked.length === 4 && Math.max(...asked) <= 40, 'exam ids are sent in groups of at most 40');
+  console.log('PASS: the store lists seat marks for many exams in seat order, past the 1000-row limit');
+})().catch(error => { console.error(error); process.exitCode = 1; });
+
+// Admin "Seats booked": tab, report, access and the print layout.
+{
+  const html = read('admin.html'), js = read('js/admin.js'), css = read('css/styles.css'), sw = read('sw.js');
+  for (const id of ['tab-seats', 'panel-seats', 'seats-room', 'seats-when', 'seats-empty', 'seats-refresh', 'seats-print', 'seats-report', 'seats-message']) assert.ok(html.includes(`id="${id}"`), `admin page has ${id}`);
+  assert.ok(/id="tab-seats"[^>]*\bhidden\b/.test(html), 'the tab starts hidden and shows only for a signed-in admin or co-admin');
+  assert.ok(js.includes("$('tab-seats').hidden = !role()") && js.includes("$('tab-settings').hidden = role() !== 'admin'"), 'Seats booked is for signed-in admins and co-admins; Settings stays admin-only');
+  assert.ok(js.includes('clearSeats()') && js.includes("ev.type === 'exam'") && js.includes('LHC_STORE.listMarks'), 'the report lists exam seat marks and is cleared on sign-out');
+  assert.ok(js.includes('window.print()') && js.includes("'beforeprint'") && js.includes("'afterprint'"), 'the print button opens the print dialog and sets the PDF file name');
+  const print = css.slice(css.indexOf('@media print'));
+  assert.ok(/@page\s*\{[^}]*size: A4/.test(print) && print.includes('counter(page)') && print.includes('counter(pages)'), 'print page is A4 with page numbers');
+  assert.ok(['.admin-tabs', '.seats-toolbar', '.site-foot', '#panel-schedule'].every(s => print.includes(s)), 'print hides the page chrome, leaving only the report');
+  assert.ok(/\.seats-exam\.short\s*\{\s*break-inside: avoid/.test(print) && print.includes('.seats-room > h3 { break-after: avoid'), 'print keeps short exams and headings together');
+  assert.ok(js.includes('<thead>') && js.includes('<colgroup>'), 'each exam is a table whose heading repeats on every printed page');
+  assert.ok(/lhc-shell-v(\d+)/.test(sw) && Number(sw.match(/lhc-shell-v(\d+)/)[1]) >= 7, 'the offline cache was renewed for the changed files');
+  console.log('PASS: admin Seats booked tab, access rules and print layout');
+}
